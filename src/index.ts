@@ -1,6 +1,43 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Function to check if a path is ignored by a .gitignore file
+const isIgnored = (filePath: string): boolean => {
+    const dirParts = filePath.split(path.sep);
+    let currentDir = '';
+
+    // Iterate through ancestor directories
+    for (let i = 0; i < dirParts.length; i++) {
+        currentDir = path.join(currentDir, dirParts[i]);
+        const gitIgnoreFile = path.join(currentDir, '.gitignore');
+
+        if (fs.existsSync(gitIgnoreFile)) {
+            const ignorePatterns = fs
+                .readFileSync(gitIgnoreFile, 'utf8')
+                .split('\n')
+                .map((pattern) => pattern.trim())
+                .filter((pattern) => pattern && !pattern.startsWith('#'));
+
+            for (const pattern of ignorePatterns) {
+                // Check for simple wildcard patterns
+                if (
+                    pattern === '*' ||
+                    pattern === '/*' ||
+                    filePath.endsWith(pattern) ||
+                    (pattern.startsWith('**/') &&
+                        filePath.includes(pattern.slice(3))) || // Handle `**/` patterns
+                    (pattern.startsWith('/') &&
+                        filePath.endsWith(pattern.slice(1))) // Handle patterns starting with '/'
+                ) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+};
+
 // Function to process a single line from whitelist.patch-ai or command line argument
 const processLine = (path: string, outputFile: string) => {
     // Print the arguments to console
@@ -25,9 +62,9 @@ const displayItem = (path: string, outputFile: string) => {
         // Traverse the directory recursively
         fs.readdirSync(path).forEach((item) => {
             const fullPath = path + '/' + item;
-            // Skip tree_structure.txt file
-            if (fullPath === `${path}/tree_structure.txt`) {
-                console.log('Skipping tree_structure.txt file...');
+            // Check if item is ignored by .gitignore
+            if (isIgnored(fullPath)) {
+                console.log(`Skipping ignored file or directory: ${fullPath}`);
                 return;
             }
             console.log(`Processing item: ${fullPath}`);
@@ -55,9 +92,6 @@ const displayItem = (path: string, outputFile: string) => {
         }
     }
 };
-
-// Set script directory
-const scriptDir = path.dirname(__filename);
 
 // Check if argument is provided
 let folderPath = process.cwd();
@@ -93,7 +127,7 @@ fs.appendFileSync(outputFile, `\n`);
 // Check if argument is provided
 if (process.argv.length <= 2) {
     // Check if whitelist.patch-ai file exists
-    const whitelistFile = path.join(scriptDir, 'whitelist.patch-ai');
+    const whitelistFile = path.join(folderPath, 'whitelist.patch-ai');
     if (fs.existsSync(whitelistFile)) {
         console.log('Reading folder paths from whitelist.patch-ai...');
         // Read folder paths from whitelist.patch-ai
@@ -116,7 +150,7 @@ if (process.argv.length <= 2) {
 }
 
 // At the bottom append the prompt from request.patch-ai
-const requestFile = path.join(scriptDir, 'request.patch-ai');
+const requestFile = path.join(folderPath, 'request.patch-ai');
 if (fs.existsSync(requestFile)) {
     // Add empty lines
     console.log('Writing empty lines to output file...');
