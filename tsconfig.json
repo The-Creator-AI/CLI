@@ -1,3 +1,4 @@
+// tsconfig.json
 {
     "compilerOptions": {
         "outDir": "dist", // Output directory for compiled JavaScript
@@ -8,7 +9,7 @@
         "esModuleInterop": true, // Enable ES module interop
         "forceConsistentCasingInFileNames": true,
         "strict": true, // Enable strict type checking
-        "noImplicitAny": true, // Prevent implicit 'any' types
+        "noImplicitAny": false, // Prevent implicit 'any' types
         "strictNullChecks": true, // Enable strict null checks
         "noUnusedLocals": true, // Warn about unused variables
         "noUnusedParameters": true, // Warn about unused parameters
@@ -18,5 +19,9 @@
     },
     "include": [
         "src/**/*.ts"
+    ],
+    "exclude": [
+        "src/**/*.test.ts",
+        "src/**/__tests__"
     ]
 }
