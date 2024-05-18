@@ -8,6 +8,7 @@ import {
     WHITELIST_FILE
 } from './constants';
 import { isIgnored } from './gitignore';
+import * as child_process from 'child_process'; // Import child_process module
 
 // Class for processing files and directories
 export class FileProcessor {
@@ -135,5 +136,19 @@ export class FileProcessor {
         } else {
             console.log('Suggestion: You can give me the changes that I should make, create a request.patch-ai file.');
         }
+    }
+
+    // Function to copy the output file to clipboard
+    copyOutputToClipboard(folderPath: string): void {
+        const outputFilePath = path.join(folderPath, OUTPUT_FILE);
+        let command: string;
+        if (process.platform === 'win32') {
+            command = `type ${outputFilePath} | clip`;
+        } else {
+            command = `pbcopy < ${outputFilePath}`;
+        }
+        console.log(`Copying output file content to clipboard...`);
+        child_process.execSync(command);
+        console.log('Output file content copied to clipboard!');
     }
 }

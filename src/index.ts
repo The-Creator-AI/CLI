@@ -13,3 +13,6 @@ if (process.argv.length <= 2) {
 
 // Process request file
 fileProcessor.processRequestFile(folderPath);
+
+// Copy the output file to clipboard
+fileProcessor.copyOutputToClipboard(folderPath); // Added this line
