@@ -42,3 +42,6 @@ Run the script:
 
 3. Run the Script:
 ```npm start```
+
+4. Register
+```sudo ./scripts/register.sh```
