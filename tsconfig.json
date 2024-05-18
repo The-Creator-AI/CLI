@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "outDir": "dist", // Output directory for compiled JavaScript
+        "module": "commonjs",
+        "target": "es2020", // Or a lower version if needed for compatibility
+        "sourceMap": true, // Generate source maps for debugging
+        "moduleResolution": "node",
+        "esModuleInterop": true, // Enable ES module interop
+        "forceConsistentCasingInFileNames": true,
+        "strict": true, // Enable strict type checking
+        "noImplicitAny": true, // Prevent implicit 'any' types
+        "strictNullChecks": true, // Enable strict null checks
+        "noUnusedLocals": true, // Warn about unused variables
+        "noUnusedParameters": true, // Warn about unused parameters
+        "declaration": true, // Generate declaration files (.d.ts)
+        "outDir": "dist", // Directory to output compiled files
+        "rootDir": "src" // Root directory of source files
+    },
+    "include": [
+        "src/**/*.ts"
+    ]
+}
