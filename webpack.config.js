@@ -20,6 +20,20 @@ module.exports = {
         use: 'ts-loader',
         exclude: /node_modules/,
       },
+      {
+        test: /\.ts$/,
+        enforce: 'pre',
+        use: [
+          {
+            loader: 'ts-loader',
+            options: {
+              configFile: 'tsconfig.json',
+              transpileOnly: true, // Skip type checking during tests
+            },
+          },
+        ],
+        exclude: /node_modules/,
+      },
     ],
   },
   resolve: {
