@@ -1,9 +1,18 @@
 #!/bin/bash
 
+# Pull the latest changes from the remote repository
+git pull
+
+# Install the npm dependencies
+npm install
+
+# Build the project
+npm run build
+
 # Now let's create the symbolic link
-SCRIPT_PATH=$(dirname $0)/context-ai.sh
+SCRIPT_PATH=$(dirname $0)/llm.sh
 ABSOLUTE_PATH=$(realpath $SCRIPT_PATH)
-SCRIPT_NAME='context-ai'
+SCRIPT_NAME='llm'
 
 # Determine the correct path for the symbolic link based on the operating system
 if [[ "$OSTYPE" == "msys" ]]; then
@@ -17,4 +26,4 @@ ln -s $ABSOLUTE_PATH $LINK_PATH
 
 # Log the success message
 echo "Symbolic link created successfully at $LINK_PATH"
-ls -l /usr/local/bin/context-ai
+ls -l /usr/local/bin/llm

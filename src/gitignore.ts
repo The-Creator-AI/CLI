@@ -16,6 +16,8 @@ export const isIgnored = (filePath: string): boolean => {
                 .split('\n')
                 .map((pattern) => pattern.trim())
                 .filter((pattern) => pattern && !pattern.startsWith('#'));
+            ignorePatterns.push('.git');
+            ignorePatterns.push('*.llm');
 
             for (const pattern of ignorePatterns) {
                 if (
@@ -23,7 +25,8 @@ export const isIgnored = (filePath: string): boolean => {
                     pattern === '/*' ||
                     filePath.endsWith(pattern) ||
                     (pattern.startsWith('**/') && filePath.includes(pattern.slice(3))) ||
-                    (pattern.startsWith('/') && filePath.endsWith(pattern.slice(1)))
+                    (pattern.startsWith('/') && filePath.endsWith(pattern.slice(1))) ||
+                    (pattern.startsWith('*.') && filePath.endsWith(pattern.slice(1)))
                 ) {
                     return true;
                 }
