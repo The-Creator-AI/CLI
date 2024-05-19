@@ -8,7 +8,7 @@ import {
     POST_PROMPT_FILE,
     PRE_PROMPT_FILE
 } from './constants';
-import { isIgnored } from './gitignore';
+import { isIgnored } from './ignore';
 import * as child_process from 'child_process'; // Import child_process module
 
 // Class for processing files and directories
