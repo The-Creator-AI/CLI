@@ -12,15 +12,15 @@ This script creates a single prompt with all the code from the repo.
 
 ## The script uses four configuration files:
  
-**system-instruction.llm:**  
+**<span style="color:blue">system-instruction.llm:</span>**  
 This file contains instructions for the LLM. You can specify things like the desired tone of the response, the type of output (e.g., code, prose), and any specific constraints or goals. The content of this file will be appended to the beginning of the output file.  
 
- **prompt.llm:**   
+**<span style="color:green">prompt.llm:</span>**   
 This file contains the prompt you want to give to the LLM. The content of this file will be appended to the end of the output file.  
 
-**ignore.llm:**
+**<span style="color:orange">ignore.llm:</span>**
 This file contains a list of patterns that you want to ignore, it works just like a .gitignore file. The content of this file will be used to filter out the code from the repo.
 
-**content.llm:**  
+**<span style="color:purple">content.llm:</span>**  
 This file contains the final output of the LLM. This file is automatically created by the script.  
 The content of this file is also copied to your clipboard.  
