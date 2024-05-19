@@ -11,138 +11,131 @@ import {
 import { isIgnored } from './ignore';
 import * as child_process from 'child_process'; // Import child_process module
 
-// Class for processing files and directories
-export class FileProcessor {
-    private outputFile: string;
+// Function to initialize the output file
+export const initializeOutputFile = (folderPath: string): string => {
+    const outputFile = path.join(folderPath, OUTPUT_FILE);
+    console.log(`Creating output file: ${outputFile}`);
+    fs.writeFileSync(outputFile, '');
+    return outputFile;
+};
 
-    constructor(folderPath: string) {
-        this.outputFile = path.join(folderPath, OUTPUT_FILE);
-        this.initializeOutputFile();
+// Function to process the pre-prompt
+export const processPrePrompt = (folderPath: string, outputFile: string): void => {
+    const requestFile = path.join(folderPath, PRE_PROMPT_FILE);
+    if (fs.existsSync(requestFile)) {
+        writeEmptyLines(outputFile);
+        console.log('Reading prompt from the prompt file: ' + requestFile);
+        const prompt = fs.readFileSync(requestFile, 'utf8');
+        fs.appendFileSync(outputFile, prompt);
+    } else {
+        // create a pre-prompt file
+        console.log(`Creating a prompt file: ${requestFile}`);
+        fs.writeFileSync(requestFile, DEFAULT_PRE_PROMPT);
+        fs.appendFileSync(outputFile, DEFAULT_PRE_PROMPT);
+    }
+    writeEmptyLines(outputFile);
+};
+
+// Function to process the post-prompt
+export const processPostPrompt = (folderPath: string, outputFile: string): void => {
+    const requestFile = path.join(folderPath, POST_PROMPT_FILE);
+    if (fs.existsSync(requestFile)) {
+        writeEmptyLines(outputFile);
+        console.log('Reading prompt from the prompt file: ' + requestFile);
+        const prompt = fs.readFileSync(requestFile, 'utf8');
+        fs.appendFileSync(outputFile, prompt);
+    } else {
+        // create a post-prompt file
+        console.log(`Creating a prompt file: ${requestFile}`);
+        fs.writeFileSync(requestFile, DEFAULT_POST_PROMPT);
+        fs.appendFileSync(outputFile, DEFAULT_POST_PROMPT);
+    }
+};
+
+// Function to write empty lines to the output file
+export const writeEmptyLines = (outputFile: string): void => {
+    console.log('Writing empty lines to output file...');
+    fs.appendFileSync(outputFile, '\n\n');
+};
+
+// Function to process a single line (file or directory)
+export const processLine = (filePath: string, outputFile: string): void => {
+    console.log(`Path: ${filePath}`);
+    console.log(`Output file: ${outputFile}`);
+
+    if (!fs.existsSync(filePath)) {
+        console.error(`Error: Path '${filePath}' does not exist.`);
+        return;
     }
 
-    // Initialize output file
-    private initializeOutputFile(): void {
-        console.log(`Creating output file: ${this.outputFile}`);
-        fs.writeFileSync(this.outputFile, '');
+    console.log(`Path '${filePath}' exists.`);
+    displayItem(filePath, outputFile);
+};
+
+// Function to display and process a single item (file or directory)
+export const displayItem = (filePath: string, outputFile: string): void => {
+    if (fs.lstatSync(filePath).isDirectory()) {
+        processDirectory(filePath, outputFile);
+    } else {
+        processFile(filePath, outputFile);
     }
+};
 
-    processPrePrompt(folderPath: string): void {
-        const requestFile = path.join(folderPath, PRE_PROMPT_FILE);
-        if (fs.existsSync(requestFile)) {
-            this.writeEmptyLines();
-            console.log('Reading prompt from the prompt file: ' + requestFile);
-            const prompt = fs.readFileSync(requestFile, 'utf8');
-            fs.appendFileSync(this.outputFile, prompt);
-        } else {
-            // create a pre-prompt file
-            console.log(`Creating a prompt file: ${requestFile}`);
-            fs.writeFileSync(requestFile, DEFAULT_PRE_PROMPT);
-            fs.appendFileSync(this.outputFile, DEFAULT_PRE_PROMPT);
-        }
-        this.writeEmptyLines();
-    }
-
-    processPostPrompt(folderPath: string): void {
-        const requestFile = path.join(folderPath, POST_PROMPT_FILE);
-        if (fs.existsSync(requestFile)) {
-            this.writeEmptyLines();
-            console.log('Reading prompt from the prompt file: ' + requestFile);
-            const prompt = fs.readFileSync(requestFile, 'utf8');
-            fs.appendFileSync(this.outputFile, prompt);
-        } else {
-            // create a post-prompt file
-            console.log(`Creating a prompt file: ${requestFile}`);
-            fs.writeFileSync(requestFile, DEFAULT_POST_PROMPT);
-            fs.appendFileSync(this.outputFile, DEFAULT_POST_PROMPT);
-        }
-    }
-
-    // Write empty lines
-    private writeEmptyLines(): void {
-        console.log('Writing empty lines to output file...');
-        fs.appendFileSync(this.outputFile, '\n\n');
-    }
-
-    // Process a single line from whitelist.patch-ai or command line argument
-    processLine(filePath: string): void {
-        console.log(`Path: ${filePath}`);
-        console.log(`Output file: ${this.outputFile}`);
-
-        if (!fs.existsSync(filePath)) {
-            console.error(`Error: Path '${filePath}' does not exist.`);
+// Function to recursively process a directory
+export const processDirectory = (dirPath: string, outputFile: string): void => {
+    console.log(`Traversing directory '${dirPath}'...`);
+    fs.readdirSync(dirPath).forEach((item) => {
+        const fullPath = path.join(dirPath, item);
+        if (isIgnored(fullPath)) {
+            console.log(`Skipping ignored file or directory: ${fullPath}`);
             return;
         }
+        console.log(`Processing item: ${fullPath}`);
+        displayItem(fullPath, outputFile);
+    });
+};
 
-        console.log(`Path '${filePath}' exists.`);
-        this.displayItem(filePath);
+// Function to process a single file
+export const processFile = (filePath: string, outputFile: string): void => {
+    console.log(`Processing file '${filePath}'...`);
+    const isBinary = isBinaryFile(filePath);
+
+    if (!isBinary) {
+        writeRelativePath(filePath, outputFile);
+        writeFileContent(filePath, outputFile);
+    } else {
+        writeRelativePath(filePath, outputFile, ' (binary)');
     }
+};
 
-    // Function to display a single item (file or folder) and write to file
-    displayItem(filePath: string): void {
-        if (fs.lstatSync(filePath).isDirectory()) {
-            this.processDirectory(filePath);
-        } else {
-            this.processFile(filePath);
-        }
+// Function to check if a file is binary
+export const isBinaryFile = (filePath: string): boolean => {
+    const fileContent = fs.readFileSync(filePath).toString('hex');
+    return BINARY_FILE_SIGNATURE.some((signature) => fileContent.includes(signature));
+};
+
+// Function to write the relative path of a file to the output file
+export const writeRelativePath = (filePath: string, outputFile: string, suffix: string = ''): void => {
+    console.log(`Writing relative path${suffix} to output file...`);
+    fs.appendFileSync(outputFile, `${filePath}${suffix}\n`);
+};
+
+// Function to write the content of a file to the output file
+export const writeFileContent = (filePath: string, outputFile: string): void => {
+    console.log(`Writing file content to output file...`);
+    fs.appendFileSync(outputFile, fs.readFileSync(filePath).toString());
+    writeEmptyLines(outputFile);
+};
+
+// Function to copy the content of the output file to the clipboard
+export const copyOutputToClipboard = (outputFile: string): void => {
+    let command: string;
+    if (process.platform === 'win32') {
+        command = `type ${outputFile} | clip`;
+    } else {
+        command = `pbcopy < ${outputFile}`;
     }
-
-    // Process a directory recursively
-    private processDirectory(dirPath: string): void {
-        console.log(`Traversing directory '${dirPath}'...`);
-        fs.readdirSync(dirPath).forEach((item) => {
-            const fullPath = path.join(dirPath, item);
-            if (isIgnored(fullPath)) {
-                console.log(`Skipping ignored file or directory: ${fullPath}`);
-                return;
-            }
-            console.log(`Processing item: ${fullPath}`);
-            this.displayItem(fullPath);
-        });
-    }
-
-    // Process a file
-    private processFile(filePath: string): void {
-        console.log(`Processing file '${filePath}'...`);
-        const isBinary = this.isBinaryFile(filePath);
-
-        if (!isBinary) {
-            this.writeRelativePath(filePath);
-            this.writeFileContent(filePath);
-        } else {
-            this.writeRelativePath(filePath, ' (binary)');
-        }
-    }
-
-    // Check if file is binary
-    private isBinaryFile(filePath: string): boolean {
-        const fileContent = fs.readFileSync(filePath).toString('hex');
-        return BINARY_FILE_SIGNATURE.some((signature) => fileContent.includes(signature));
-    }
-
-    // Write relative path to output file
-    private writeRelativePath(filePath: string, suffix: string = ''): void {
-        console.log(`Writing relative path${suffix} to output file...`);
-        fs.appendFileSync(this.outputFile, `${filePath}${suffix}\n`);
-    }
-
-    // Write file content to output file
-    private writeFileContent(filePath: string): void {
-        console.log(`Writing file content to output file...`);
-        fs.appendFileSync(this.outputFile, fs.readFileSync(filePath).toString());
-        this.writeEmptyLines();
-    }
-
-    // Function to copy the output file to clipboard
-    copyOutputToClipboard(folderPath: string): void {
-        const outputFilePath = path.join(folderPath, OUTPUT_FILE);
-        let command: string;
-        if (process.platform === 'win32') {
-            command = `type ${outputFilePath} | clip`;
-        } else {
-            command = `pbcopy < ${outputFilePath}`;
-        }
-        console.log(`Copying output file content to clipboard...`);
-        child_process.execSync(command);
-        console.log('Output file content copied to clipboard!');
-    }
-}
+    console.log(`Copying output file content to clipboard...`);
+    child_process.execSync(command);
+    console.log('Output file content copied to clipboard!');
+};
