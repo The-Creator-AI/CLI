@@ -8,6 +8,8 @@ This script creates a single prompt with all the code from the repo.
 2. Run the Script from Any Directory:  
 ```llm```
 
+> Voila! The prompt with all the code from the repo is copied to your clipboard.
+
 ## The script uses three configuration files:
  
 **system-instruction.llm:**  
