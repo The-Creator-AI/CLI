@@ -39,7 +39,9 @@ export const ensureIgnoreFileExists = (dir: string): void => {
             '*.llm',
             ".git",
             ".vscode",
-            "node_modules"
+            "node_modules",
+            "yarn.lock",
+            "package-lock.json",
         ]);
 
         // Check if either file is newer, or if the contents have changed
