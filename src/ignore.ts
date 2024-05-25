@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { isBinaryFile } from './file-processor';
 
 export const ensureIgnoreFileExists = (dir: string): void => {
     const gitIgnorePath = path.join(dir, '.gitignore');
@@ -63,6 +64,14 @@ function areSetsEqual<T>(a: Set<T>, b: Set<T>): boolean {
 
 // Function to check if a path is ignored by a .gitignore file
 export const isIgnored = (filePath: string): boolean => {
+    if (isBinaryFile(filePath)) {
+        return true;
+    }
+
+    const fileExtension = path.extname(filePath);
+    if (!fileExtension) {
+        return true;
+    }
     const dirParts = filePath.split(path.sep);
     let currentDir = '';
 
