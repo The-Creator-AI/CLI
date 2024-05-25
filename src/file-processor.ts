@@ -108,8 +108,16 @@ export const processFile = (filePath: string, outputFile: string): void => {
     }
 };
 
+// Function to check if the path is a directory
+export const isDirectory = (dirPath: string): boolean => {
+    return fs.lstatSync(dirPath).isDirectory();
+};
+
 // Function to check if a file is binary
 export const isBinaryFile = (filePath: string): boolean => {
+    if (!isDirectory(filePath)) {
+        return false;
+    }
     const fileContent = fs.readFileSync(filePath).toString('hex');
     return BINARY_FILE_SIGNATURE.some((signature) => fileContent.includes(signature));
 };
