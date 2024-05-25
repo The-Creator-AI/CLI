@@ -115,7 +115,7 @@ export const isDirectory = (dirPath: string): boolean => {
 
 // Function to check if a file is binary
 export const isBinaryFile = (filePath: string): boolean => {
-    if (!isDirectory(filePath)) {
+    if (isDirectory(filePath)) {
         return false;
     }
     const fileContent = fs.readFileSync(filePath).toString('hex');
