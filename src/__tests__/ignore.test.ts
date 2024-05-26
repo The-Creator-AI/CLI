@@ -183,7 +183,27 @@ describe('isIgnored', () => {
                     files: {
                         '/test/dir/node_modules/some_module/file.js': true,
                         '/test/dir/.git/config': true,
-                        '/test/dir/ignore.llm': true
+                        '/test/dir/ignore.llm': true,
+                        '/test/dir/settings.json': true,
+                        '/test/settings.txt': true,
+                        '/test/dir/node_modules_dir/some_module/file.js': true,
+                        '/test/dir/some/path/node_modules_dir/file.js': true,
+                        '/test/dir/file.js': true,
+                        '/test/dir/file.test.js': true,
+                        '/test/dir/src/utils.ts': true,
+                        '/test/dir/src/utils.test.ts': true,
+                        '/tmp/file.txt': true,
+                        '/tmp/file.md': true,
+                        '/home/user/Downloads/file.txt': true,
+                        '/home/user/Downloads/file.md': true,
+                        '/test/dir/tests/file.test.js': true,
+                        '/test/dir/test.js': true,
+                        '/test/dir/test.test.js': true,
+                        '/test/node_modules_dir/file.js': true,
+                        '/test/dir/node_modules_dir/some_module/file.js': true,
+                        '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true,
+                        '/test/dir/src/tests/file.test.js': true,
+                        '/test/dir/src/utils.test.ts': true
                     }
                 },
                 '*.txt': {
@@ -256,6 +276,11 @@ describe('isIgnored', () => {
                         acc[pattern] = { ...options.files};
                         return acc;
                     }, {}),    
+            });
+            Object.entries(ignorePatterns).forEach(([pattern, options]) => {
+                Object.entries(options.files).forEach(([file, expected]) => {
+                    expect(isIgnored(file)).toBe(expected);
+                });
             });
         });
   });
