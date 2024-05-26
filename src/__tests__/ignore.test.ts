@@ -268,20 +268,20 @@ describe('isIgnored', () => {
                     }
                 },
             };
-            mockFs({
-                ...Object.entries(ignorePatterns)
-                    .reduce((acc, [pattern, options]) => {
-                        acc[pattern] = { ...options.files};
-                        Object.entries(acc[pattern]).forEach(([file, _]) => {
-                            acc[pattern][file] = `Dummy content`;
-                        });
-                        return acc;
-                    }, {}),    
-            });
-            Object.entries(ignorePatterns).forEach(([_, options]) => {
-                Object.entries(options.files).forEach(([file, expected]) => {
+            Object.entries(ignorePatterns).forEach(([pattern, ignorePattern]) => {
+                mockFs({
+                    ...Object.entries(ignorePattern.files)
+                        .reduce((acc, [file, _]) => {
+                            acc[file] = `Dummy content`;
+                            return acc;
+                        }, {}),
+                        '.gitignore': pattern
+                });
+                Object.entries(ignorePattern.files).forEach(([file, expected]) => {
                     expect(file + ' ' + isIgnored(file)).toBe(file + ' ' + expected);
                 });
+                // Restore the mock after each pattern
+                mockFs.restore();
             });
         });
   });
