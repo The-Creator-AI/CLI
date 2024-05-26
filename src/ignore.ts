@@ -1,128 +1,87 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { isBinaryFile } from './file-processor';
+import * as ignore from 'ignore';
+import parseGitignore from 'parse-gitignore';
+import fs from 'fs';
+import path from 'path';
+import { isBinaryFile } from './utils';
 
-export const ensureIgnoreFileExists = (dir: string): void => {
-    const gitIgnorePath = path.join(dir, '.gitignore');
-    const ignoreLLMPath = path.join(dir, 'ignore.llm');
+const DEFAULT_IGNORE = [
+  '*.llm', // Always add these patterns
+  '.git',
+  '.vscode',
+  'node_modules',
+  'yarn.lock',
+  'package-lock.json',
+  '*.log'
+]
 
-    try {
-        const gitIgnoreStats = fs.existsSync(gitIgnorePath) && fs.statSync(gitIgnorePath);
-        const ignoreLLMStats = fs.existsSync(ignoreLLMPath) && fs.statSync(ignoreLLMPath);
+export const getIgnorePatterns = (dir: string) => {
+  const gitIgnorePath = path.join(dir, '.gitignore');
+  const ignoreLLMPath = path.join(dir, 'ignore.llm');
 
-        // return if ignore.llm is newer than .gitignore
-        if (ignoreLLMStats && (!gitIgnoreStats || ignoreLLMStats.mtimeMs > gitIgnoreStats.mtimeMs)) {
-            return;
-        }
-
-        const gitIgnorePatterns = gitIgnoreStats
-            ? new Set(
-                fs.readFileSync(gitIgnorePath, 'utf8')
-                    .split('\n')
-                    .map(pattern => pattern.trim())
-                    .filter(pattern => pattern && !pattern.startsWith('#'))
-            )
-            : new Set();
-
-        const ignoreLLMPatterns = ignoreLLMStats
-            ? new Set(
-                fs.readFileSync(ignoreLLMPath, 'utf8')
-                    .split('\n')
-                    .map(pattern => pattern.trim())
-                    .filter(pattern => pattern && !pattern.startsWith('#'))
-            )
-            : new Set();
-
-        // Merge the two sets of patterns while ensuring uniqueness and keeping *.llm
-        const mergedPatterns = new Set([
-            ...gitIgnorePatterns,
-            ...ignoreLLMPatterns,
-            '*.llm',
-            ".git",
-            ".vscode",
-            "node_modules",
-            "yarn.lock",
-            "package-lock.json",
-        ]);
-
-        // Check if either file is newer, or if the contents have changed
-        const shouldUpdate = !ignoreLLMStats
-            || (gitIgnoreStats && gitIgnoreStats.mtimeMs > ignoreLLMStats.mtimeMs)
-            || !areSetsEqual(gitIgnorePatterns, ignoreLLMPatterns);
-
-        if (shouldUpdate) {
-            fs.writeFileSync(ignoreLLMPath, [...mergedPatterns].join('\n'));
-        }
-    } catch (error: any) {
-        console.error(`Error processing ignore files: ${error.message}`);
+  try {
+    if (fs.existsSync(ignoreLLMPath) && fs.statSync(ignoreLLMPath).mtimeMs >= (fs.existsSync(gitIgnorePath) && fs.statSync(gitIgnorePath).mtimeMs || 0)) {
+      return fs.readFileSync(ignoreLLMPath, 'utf-8');
     }
+
+    const gitIgnorePatterns = fs.existsSync(gitIgnorePath)
+      ? parseGitignore(fs.readFileSync(gitIgnorePath, 'utf-8'))
+      : [];
+    const ignoreLLMPatterns = fs.existsSync(ignoreLLMPath)
+      ? parseGitignore(fs.readFileSync(ignoreLLMPath, 'utf-8'))
+      : [];
+
+    const mergedPatterns = new Set([
+      ...(gitIgnorePatterns?.patterns || []),
+      ...(ignoreLLMPatterns?.patterns || []),
+      ...DEFAULT_IGNORE
+    ]);
+
+    // create ignore.llm only if .gitignore exists
+    if (gitIgnorePatterns?.patterns?.length) {
+      fs.writeFileSync(ignoreLLMPath, [...mergedPatterns].join('\n'));
+    }
+
+    return [...mergedPatterns];
+  } catch (error: any) {
+    console.error(`Error processing ignore files: ${error.message}`);
+    return [];
+  }
 };
 
-function areSetsEqual<T>(a: Set<T>, b: Set<T>): boolean {
-    return a.size === b.size && [...a].every(value => b.has(value));
-}
-
-// Function to check if a path is ignored by a .gitignore file
 export const isIgnored = (filePath: string): boolean => {
-    if (isBinaryFile(filePath)) {
-        return true;
-    }
+  // Handle binary files directly
+  if (isBinaryFile(filePath)) {
+    return true;
+  }
 
-    const fileExtension = path.extname(filePath);
-    if (!fileExtension) {
-        return true;
-    }
-    const dirParts = filePath.split(path.sep);
-    let currentDir = '';
+  let currentDir = path.dirname(filePath); // Start from the file's directory
+  let ignoreInstance: ignore.Ignore | null = null;
 
-    for (let i = 0; i < dirParts.length; i++) {
-        currentDir = path.join(currentDir, dirParts[i]);
-
-        const gitIgnoreFile = path.join(currentDir, '.gitignore');
-        const ignoreLLMFile = path.join(currentDir, 'ignore.llm');
-
-        if (fs.existsSync(gitIgnoreFile) || fs.existsSync(ignoreLLMFile)) {
-            ensureIgnoreFileExists(currentDir); // Ensure ignore.llm is up-to-date
-
-            const ignorePatterns = fs
-                .readFileSync(ignoreLLMFile, 'utf8')
-                .split('\n')
-                .map((pattern) => pattern.trim())
-                .filter((pattern) => pattern && !pattern.startsWith('#'));
-
-            for (const pattern of ignorePatterns) {
-                // Normalize the pattern (remove leading slash if present)
-                let normalizedPattern = pattern.startsWith('/') ? pattern.slice(1) : pattern;
-
-                // Handle patterns ending with a slash (match directories only)
-                const isDirectoryPattern = normalizedPattern.endsWith('/');
-                if (isDirectoryPattern) {
-                    if (!fs.lstatSync(filePath).isDirectory()) {
-                        continue; // Skip to the next pattern if not a directory
-                    }
-                    // Remove trailing slash for directory comparison
-                    normalizedPattern = normalizedPattern.slice(0, -1);
-                }
-
-                // Check for different matching scenarios
-                if (
-                    normalizedPattern === '*' ||                 // Ignore everything in this directory
-                    normalizedPattern === '**' ||               // Ignore everything in this directory and subdirectories
-                    normalizedPattern === filePath ||            // Exact path match
-                    filePath.endsWith(normalizedPattern) ||       // File or directory name match at the end of the path
-                    (normalizedPattern.startsWith('**/') && filePath.includes(normalizedPattern.slice(3))) || // Match in any subdirectory
-                    (normalizedPattern.startsWith('/') && filePath.includes(normalizedPattern)) // Path match within the current directory
-                ) {
-                    return true;
-                }
-
-                // Handle wildcard file extension match
-                if (normalizedPattern.startsWith('*.') && filePath.endsWith(normalizedPattern.slice(1))) {
-                    return true;
-                }
-            }
+  // Iterate through ancestor directories until root is reached
+  while (true) {
+    try {
+      const ignorePatterns = getIgnorePatterns(currentDir);
+      if (ignorePatterns?.length) {
+        ignoreInstance = ignore.default().add(ignorePatterns);
+        // Make file path relative to the current directory being checked
+        const relativeFilePath = path.relative(currentDir, filePath);
+        if (ignoreInstance && ignoreInstance.ignores(relativeFilePath)) {
+          return true;
         }
+      }
+
+    } catch (error: any) {
+      console.error(`Error reading ignore files in ${currentDir}: ${error.message}`);
     }
-  
-    return false;
+
+    if (currentDir === path.parse(currentDir).root) {
+      break;
+    } else {
+      // Move to the parent directory
+      currentDir = path.dirname(currentDir);
+    }
+  }
+
+  // If no matching ignore rule is found in any ancestor, the file is not ignored
+  return false;
 };

@@ -6,6 +6,8 @@
         "target": "es2020", // Or a lower version if needed for compatibility
         "sourceMap": true, // Generate source maps for debugging
         "moduleResolution": "node",
+        "types": ["node", "jest"],
+        "resolveJsonModule": true, // Enable JSON module resolution
         "esModuleInterop": true, // Enable ES module interop
         "forceConsistentCasingInFileNames": true,
         "strict": true, // Enable strict type checking
@@ -21,7 +23,5 @@
         "src/**/*.ts"
     ],
     "exclude": [
-        "src/**/*.test.ts",
-        "src/**/__tests__"
     ]
 }
