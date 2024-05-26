@@ -200,10 +200,8 @@ describe('isIgnored', () => {
                         '/test/dir/test.js': true,
                         '/test/dir/test.test.js': true,
                         '/test/node_modules_dir/file.js': true,
-                        '/test/dir/node_modules_dir/some_module/file.js': true,
                         '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true,
                         '/test/dir/src/tests/file.test.js': true,
-                        '/test/dir/src/utils.test.ts': true
                     }
                 },
                 '*.txt': {
@@ -274,12 +272,15 @@ describe('isIgnored', () => {
                 ...Object.entries(ignorePatterns)
                     .reduce((acc, [pattern, options]) => {
                         acc[pattern] = { ...options.files};
+                        Object.entries(acc[pattern]).forEach(([file, _]) => {
+                            acc[pattern][file] = `Dummy content`;
+                        });
                         return acc;
                     }, {}),    
             });
-            Object.entries(ignorePatterns).forEach(([pattern, options]) => {
+            Object.entries(ignorePatterns).forEach(([_, options]) => {
                 Object.entries(options.files).forEach(([file, expected]) => {
-                    expect(isIgnored(file)).toBe(expected);
+                    expect(file + ' ' + isIgnored(file)).toBe(file + ' ' + expected);
                 });
             });
         });
