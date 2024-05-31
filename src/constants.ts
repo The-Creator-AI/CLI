@@ -1,6 +1,7 @@
 export const PRE_PROMPT_FILE = 'system-instruction.llm';
 export const POST_PROMPT_FILE = 'prompt.llm';
 export const OUTPUT_FILE = 'content.llm';
+export const LLM_RESPONSE_FILE = 'llm-response.llm';
 export const DEFAULT_PRE_PROMPT = `I'd like to make some changes to my codebase, and I'd appreciate your help.
 
 Instead of providing one long text with all the files, can we break it down by specific changes?

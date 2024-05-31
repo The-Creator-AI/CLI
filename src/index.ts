@@ -7,7 +7,7 @@ import {
   processPostPrompt,
   processPrePrompt,
 } from './llm';
-import { sendToLLM } from './remote';
+import { saveLLMResponse, sendToLLM } from './remote';
 
 // Main execution
 const folderPath = process.argv.length > 2 ? process.argv[2] : process.cwd();
@@ -28,6 +28,7 @@ processPostPrompt(folderPath, outputFile);
 copyOutputToClipboard(outputFile); // Added this line
 
 (async () => {
-  const diff = await sendToLLM(outputFile);
-  console.log(diff);
+  const response = await sendToLLM(outputFile);
+  saveLLMResponse(response);
+  console.log(response);
 })();
