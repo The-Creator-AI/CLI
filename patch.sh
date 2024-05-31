@@ -4,6 +4,7 @@
 # * Sending line numbers with the code so that it helps generate the diff
 # * Using this command to apply the patch
 git apply \
+--reject \
 --verbose \
 --recount \
 --ignore-space-change \
