@@ -8,6 +8,7 @@ import {
   processPrePrompt,
 } from './llm';
 import { saveLLMResponse, sendToLLM } from './remote';
+import { parseDiff } from './diff';
 
 // Main execution
 const folderPath = process.argv.length > 2 ? process.argv[2] : process.cwd();
@@ -30,5 +31,6 @@ copyOutputToClipboard(outputFile); // Added this line
 (async () => {
   const response = await sendToLLM(outputFile);
   saveLLMResponse(response);
-  console.log(response);
+  const diff = parseDiff(response);
+  console.log(diff);
 })();

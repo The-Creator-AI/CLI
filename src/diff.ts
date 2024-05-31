@@ -12,5 +12,12 @@ export const parseDiff = (llmResponse: string) => {
     diffEnd -= 1;
 
     let diff = llmResponse.substring(diffStart + 8, diffEnd);
+
+    // if each line has line number + dot + space
+    // example:
+    // 10. This is a line
+    // 11. This is another line
+    // Then remove those extra characters
+    diff = diff.replace(/\d+\.\s/g, '');
     return diff;
 };
