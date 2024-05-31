@@ -9,7 +9,39 @@ Here's what I propose:**
 
 Describe the change: Briefly explain what you want to achieve with the code modification.
 Desired outcome: Describe the expected behavior after the change.
-Once you understand my goals, you can provide the modified code in the same format as the original.
+Once you understand my goals, you can provide the modified code in the git diff format.
+To help you with git diff, I have added line numbers to the code.
+Remember, line numbers are to be excluded from the diff. Treat the code as if there were no line numbers.
+
+Example:
+You will see the code as -
+\`\`\`
+1. #include <stdio.h>
+2. #include <stdlib.h>
+3. #include <string.h>
+4. 
+5. int main() {
+6.     printf("Hello, World!\n");
+7.     return 0;
+8. }
+\`\`\`
+When you return git diff, you will give the following output:
+@@ -1,5 +1,5 @@
+- #include <stdio.h>
++ #include <stdio.h>
++ #include <stdlib.h>
++ #include <string.h>
+ 
+- int main() {
++ int main() {
+     printf("Hello, World!\n");
+     return 0;
+ }
+
+
+
+I hope that helps.
+
 
 This approach will allow us to work more efficiently and ensure we're on the same page.
 `;
