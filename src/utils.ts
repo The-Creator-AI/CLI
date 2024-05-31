@@ -38,7 +38,7 @@ export const writeRelativePath = (filePath: string, outputFile: string, suffix: 
 };
 
 // Function to write the content of a file to the output file
-export const writeFileContent = (filePath: string, outputFile: string): void => {
+export const appendFileContent = (filePath: string, outputFile: string): void => {
     // console.log(`Writing file content to output file...`);                                                                                                                                                                     
     const fileContent = fs.readFileSync(filePath).toString();
     const lines = fileContent.split('\n');

@@ -9,7 +9,7 @@ import {
     PRE_PROMPT_FILE
 } from './constants';
 import { isIgnored } from './ignore';
-import { isBinaryFile, writeEmptyLines, writeFileContent, writeRelativePath } from './utils';
+import { isBinaryFile, writeEmptyLines, appendFileContent, writeRelativePath } from './utils';
 
 // Function to initialize the output file
 export const initializeOutputFile = (folderPath: string): string => {
@@ -91,6 +91,6 @@ export const processFile = (filePath: string, outputFile: string): void => {
 
     if (!isBinary) {
         writeRelativePath(filePath, outputFile);
-        writeFileContent(filePath, outputFile);
+        appendFileContent(filePath, outputFile);
     }
 };

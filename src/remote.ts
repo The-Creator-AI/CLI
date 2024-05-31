@@ -1,10 +1,10 @@
 import {
     readFileContent,
-    writeFileContent
 } from './utils';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
 import { LLM_RESPONSE_FILE } from './constants';
+import * as fs from 'fs';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -35,7 +35,7 @@ export const sendToLLM = async (outputFile: string) => {
 };
 
 export const saveLLMResponse = async (response: string) => {
-    writeFileContent(LLM_RESPONSE_FILE, response);
+    fs.writeFileSync(LLM_RESPONSE_FILE, response);
 };
 
 export const readLastLLMResponse = async () => {
