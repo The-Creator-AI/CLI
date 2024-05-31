@@ -1,3 +1,5 @@
+import * as ParseDiff from 'parse-diff';
+
 export const parseDiff = (llmResponse: string) => {
     // find code with the patterns - ```diff ...code goes here... ```
     const diffStart = llmResponse.indexOf('```diff');
@@ -19,5 +21,14 @@ export const parseDiff = (llmResponse: string) => {
     // 11. This is another line
     // Then remove those extra characters
     diff = diff.replace(/\s*\d+\.\s/g, '');
+    return sanitizeDiff(diff);
+};
+
+export const getDiffHunks = (diff: string) => {
+    return ParseDiff.default(diff);
+};
+
+
+export const sanitizeDiff = (diff: string) => {
     return diff;
 };
