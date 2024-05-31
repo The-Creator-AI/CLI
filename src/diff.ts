@@ -44,8 +44,9 @@ export const applyDiff = (diff: string) => {
 
         hunk.chunks.forEach(chunk => {
             chunk.changes.forEach(change => {
+                console.log(change);
                 if (change.type === 'add') {
-                    lines.splice(change.ln - 1, 0, change.content);
+                    lines.splice(change.ln - 1, 0, change.content.slice(1));
                 } else if (change.type === 'del') {
                     lines.splice(change.ln - 1, 1);
                 }
