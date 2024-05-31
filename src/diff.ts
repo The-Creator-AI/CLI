@@ -58,12 +58,13 @@ export const sanitizedDiff = (diff: string) => {
                         if (change['ln2']) {
                             change['ln2'] += lineNbrDiffFromOriginalFile;
                         }
-                        console.log(lineNbrDiffFromOriginalFile + lineNbrOffsetByChanges);
+                        const totalLineNbrDiff = lineNbrDiffFromOriginalFile + lineNbrOffsetByChanges;
+                        console.log(totalLineNbrDiff);
                         return {
                             ...change,
-                            ln1: change['ln1'] ? change['ln1'] + lineNbrDiffFromOriginalFile + lineNbrOffsetByChanges : change['ln1'],
-                            ln2: change['ln2'] ? change['ln2'] + lineNbrDiffFromOriginalFile + lineNbrOffsetByChanges : change['ln2'],
-                            ln: change['ln'] ? change['ln'] + lineNbrDiffFromOriginalFile : change['ln']
+                            ln1: change['ln1'] ? change['ln1'] + totalLineNbrDiff : change['ln1'],
+                            ln2: change['ln2'] ? change['ln2'] + totalLineNbrDiff : change['ln2'],
+                            ln: change['ln'] ? change['ln'] + totalLineNbrDiff : change['ln']
                         };
                     })
                 };
