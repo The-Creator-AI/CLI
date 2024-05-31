@@ -28,12 +28,16 @@ export const writeRelativePath = (filePath: string, outputFile: string, suffix: 
     fs.appendFileSync(outputFile, `${filePath}${suffix}\n`);
 };
 
-// Function to write the content of a file to the output file
+// Function to write the content of a file to the output file                                                                                                                                                                                                                          
 export const writeFileContent = (filePath: string, outputFile: string): void => {
-    // console.log(`Writing file content to output file...`);
-    fs.appendFileSync(outputFile, fs.readFileSync(filePath).toString());
+    // console.log(`Writing file content to output file...`);                                                                                                                                                                     
+    const fileContent = fs.readFileSync(filePath).toString();
+    const lines = fileContent.split('\n');
+    const numberedLines = lines.map((line, index) => `${index + 1}. ${line}`);
+    fs.appendFileSync(outputFile, numberedLines.join('\n'));
     writeEmptyLines(outputFile);
 };
+
 
 // Function to copy the content of the output file to the clipboard
 export const copyOutputToClipboard = (outputFile: string): void => {
