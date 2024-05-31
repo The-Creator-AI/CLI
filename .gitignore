@@ -4,3 +4,4 @@
 /coverage
 *.llm
 .aider*
+*.patch

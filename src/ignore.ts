@@ -11,7 +11,8 @@ const DEFAULT_IGNORE = [
   'node_modules',
   'yarn.lock',
   'package-lock.json',
-  '*.log'
+  '*.log',
+  '*.patch',
 ]
 
 export const getIgnorePatterns = (dir: string) => {
