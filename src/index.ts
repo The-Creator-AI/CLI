@@ -9,7 +9,7 @@ import {
   processPrePrompt,
 } from './llm';
 import { saveLLMResponse, sendToLLM } from './remote';
-import { parseDiff } from './diff';
+import { applyDiff, parseDiff } from './diff';
 
 // Main execution
 const folderPath = process.argv.length > 2 ? process.argv[2] : process.cwd();
@@ -39,6 +39,10 @@ copyOutputToClipboard(outputFile); // Added this line
   // Write diff to diff.patch file
   fs.writeFileSync(DIFF_PATCH_FILE, diff);
   console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
+
+  // Apply diff
+  applyDiff(diff);
+  console.log('Diff applied!');
   
   return 'Done'
 })();
