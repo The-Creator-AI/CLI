@@ -24,11 +24,11 @@ export const isBinaryFile = (filePath: string): boolean => {
 
 // Function to write the relative path of a file to the output file
 export const writeRelativePath = (filePath: string, outputFile: string, suffix: string = ''): void => {
-    // console.log(`Writing relative path${suffix} to output file...`);
-    fs.appendFileSync(outputFile, `${filePath}${suffix}\n`);
+    const relativePath = path.relative(process.cwd(), filePath);
+    fs.appendFileSync(outputFile, `${relativePath}${suffix}\n`);
 };
 
-// Function to write the content of a file to the output file                                                                                                                                                                                                                          
+// Function to write the content of a file to the output file
 export const writeFileContent = (filePath: string, outputFile: string): void => {
     // console.log(`Writing file content to output file...`);                                                                                                                                                                     
     const fileContent = fs.readFileSync(filePath).toString();
