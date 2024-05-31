@@ -46,6 +46,7 @@ I hope that helps.
 This approach will allow us to work more efficiently and ensure we're on the same page.
 `;
 export const DEFAULT_POST_PROMPT = `Give the outline of the project.`;
+export const IGNORE_LINE_NUMBERS = `Remember, line numbers are to be excluded from the diff. Treat the code as if there were no line numbers.`;
 export const BINARY_EXTENSTIONS = [
     "3dm",
     "3ds",
