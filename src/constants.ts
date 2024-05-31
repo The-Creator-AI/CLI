@@ -26,6 +26,8 @@ You will see the code as -
 8. }
 \`\`\`
 When you return git diff, you will give the following output:
+--- a/main.c
++++ b/main.c
 @@ -1,5 +1,5 @@
 - #include <stdio.h>
 + #include <stdio.h>
