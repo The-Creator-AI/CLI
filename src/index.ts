@@ -32,9 +32,9 @@ copyOutputToClipboard(outputFile); // Added this line
 (async () => {
   const response = await sendToLLM(outputFile);
   saveLLMResponse(response);
-  console.log('Response:', response);
+  // console.log('Response:', response);
   const diff = parseDiff(response);
-  console.log('Diff:', diff);
+  // console.log('Diff:', diff);
   
   // Write diff to diff.patch file
   fs.writeFileSync(DIFF_PATCH_FILE, diff);
