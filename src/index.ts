@@ -1,6 +1,7 @@
+import { DIFF_PATCH_FILE } from './constants';
+import * as fs from 'fs';
 import {
-  copyOutputToClipboard
-} from './utils';
+  copyOutputToClipboard} from './utils';
 import {
   initializeOutputFile,
   processPath,
@@ -31,6 +32,13 @@ copyOutputToClipboard(outputFile); // Added this line
 (async () => {
   const response = await sendToLLM(outputFile);
   saveLLMResponse(response);
+  console.log('Response:', response);
   const diff = parseDiff(response);
-  console.log(diff);
+  console.log('Diff:', diff);
+  
+  // Write diff to diff.patch file
+  fs.writeFileSync(DIFF_PATCH_FILE, diff);
+  console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
+  
+  return 'Done'
 })();

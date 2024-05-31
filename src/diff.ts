@@ -18,6 +18,6 @@ export const parseDiff = (llmResponse: string) => {
     // 10. This is a line
     // 11. This is another line
     // Then remove those extra characters
-    diff = diff.replace(/\d+\.\s/g, '');
+    diff = diff.replace(/\s*\d+\.\s/g, '');
     return diff;
 };
