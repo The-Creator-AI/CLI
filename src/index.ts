@@ -1,7 +1,8 @@
 import { DIFF_PATCH_FILE } from './constants';
 import * as fs from 'fs';
 import {
-  copyOutputToClipboard} from './utils';
+  copyOutputToClipboard
+} from './utils';
 import {
   initializeOutputFile,
   processPath,
@@ -37,14 +38,24 @@ copyOutputToClipboard(outputFile); // Added this line
 
 (async () => {
   let diff = fs.readFileSync(DIFF_PATCH_FILE).toString();
-  if(!applyLast) {
-    const response = await sendToLLM(outputFile);
-    saveLLMResponse(response);
-    // console.log('Response:', response);
-    diff = parseDiff(response);
-    // console.log('Diff:', diff);
+  if (!applyLast) {
+    let retryCount = 0;
+    while (retryCount < 3) {
+      const response = await sendToLLM(outputFile);
+      try {
+        diff = parseDiff(response);
+        saveLLMResponse(response);
+        break;
+      } catch (error) {
+        retryCount++;
+        console.log('Diff parsing failed, retrying...');
+        if (retryCount == 3) {
+          console.log('Diff parsing failed 3 times, exiting...');
+        }
+      }
+    }  // Write diff to diff.patch file  fs.writeFileSync(DIFF_PATCH_FILE, diff);
   }
-  
+
   // Write diff to diff.patch file
   fs.writeFileSync(DIFF_PATCH_FILE, diff);
   console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
@@ -52,6 +63,6 @@ copyOutputToClipboard(outputFile); // Added this line
   // Apply diff
   applyDiff(diff);
   console.log('Diff applied!');
-  
+
   return 'Done'
 })();
