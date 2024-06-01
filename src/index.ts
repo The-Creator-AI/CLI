@@ -12,7 +12,13 @@ import { saveLLMResponse, sendToLLM } from './remote';
 import { applyDiff, parseDiff } from './diff';
 
 // Main execution
-const folderPath = process.argv.length > 2 ? process.argv[2] : process.cwd();
+// const folderPath = process.argv.length ? process.argv[2] : process.cwd();
+const folderPath = process.cwd();
+
+let applyLast = false;
+if (process.argv.length && process.argv.includes('--applyLast')) {
+  applyLast = true;
+}
 
 // Initialize the output file
 const outputFile = initializeOutputFile(folderPath);
@@ -30,11 +36,14 @@ processPostPrompt(folderPath, outputFile);
 copyOutputToClipboard(outputFile); // Added this line
 
 (async () => {
-  const response = await sendToLLM(outputFile);
-  saveLLMResponse(response);
-  // console.log('Response:', response);
-  const diff = parseDiff(response);
-  // console.log('Diff:', diff);
+  let diff = fs.readFileSync(DIFF_PATCH_FILE).toString();
+  if(!applyLast) {
+    const response = await sendToLLM(outputFile);
+    saveLLMResponse(response);
+    // console.log('Response:', response);
+    diff = parseDiff(response);
+    // console.log('Diff:', diff);
+  }
   
   // Write diff to diff.patch file
   fs.writeFileSync(DIFF_PATCH_FILE, diff);

@@ -33,14 +33,17 @@ const findActualLineNbr = (lines: string[], content: string, assumedLineNbr: num
     const nbrOfLines = lines.length;
     const RANGE = 3;
     // look only +-5 lines around the ln2, consider the rest to be empty
-    const linesToSearch = lines.slice(assumedLineNbr - RANGE, assumedLineNbr + RANGE);
-    // push empty lines in to make the linesToSearch array equal to lines
-    [...new Array(assumedLineNbr - RANGE)]
-        .forEach(() => linesToSearch.unshift(''));
-    [...new Array(nbrOfLines - linesToSearch.length)]
-        .forEach(() => linesToSearch.push(''));
-    const actualLineNbr = linesToSearch
-    .findIndex(line => content.includes(line) && line.trim() !== '');
+    let linesToSearch = lines.slice(assumedLineNbr - RANGE, assumedLineNbr + RANGE);
+    try {
+        // push empty lines in to make the linesToSearch array equal to lines
+        [...new Array(assumedLineNbr - RANGE)]
+            .forEach(() => linesToSearch.unshift(''));
+        [...new Array(nbrOfLines - linesToSearch.length)]
+            .forEach(() => linesToSearch.push(''));
+    } catch (e) {
+        linesToSearch = lines;
+    }
+    const actualLineNbr = linesToSearch.findIndex(line => content.includes(line) && line.trim() !== '');
     return actualLineNbr;
 };
 
