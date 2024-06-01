@@ -66,7 +66,7 @@ const main = async () => {
     await applyDiff(diff);
     console.log('Diff applied!');
   } else if (action === 'commit-message') {
-    await generateCommitMessages();
+    await generateCommitMessages(folderPath);
   } else if (action === 'suggest-things') {
     await suggestThings(folderPath);
   }

@@ -1,26 +1,22 @@
-import {
-    copyOutputToClipboard,
-    getGitDiff,
-    getPreviousRecords,
-    gitCommit,
-    readFileContent,
-    saveNewRecord,
-    writeEmptyLines,
-} from './utils.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import fetch from 'node-fetch';
-import {
-    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, POST_PROMPTS_FILE, DEFAULT_PRE_PROMPT, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
-    OUTPUT_FILE,
-    PRE_PROMPT_FILE,
-    SUGGEST_THINGS,
-} from './constants.js';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
-import { applyDiff, parseDiff } from './diff.js';
-import { initializeOutputFile, getDirectoryContent, processPostPrompt, processPrePrompt } from './llm.js';
-import autocomplete from 'inquirer-autocomplete-standalone';
-import editor from '@inquirer/editor';
+import fetch from 'node-fetch';
+import {
+    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST,
+    DIFF_PATCH_FILE,
+    LLM_RESPONSE_FILE,
+    OUTPUT_FILE
+} from './constants.js';
+import { applyDiff, parseCode } from './diff.js';
+import { getDirectoryContent, initializeOutputFile, processPostPrompt, processPrePrompt } from './llm.js';
+import { promptConfigs } from './prompt-configs.js';
+import type { PromptConfig, PromptConfigContext } from './types.js';
+import {
+    copyOutputToClipboard,
+    readFileContent,
+    writeEmptyLines
+} from './utils.js';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -35,22 +31,23 @@ import editor from '@inquirer/editor';
 export const sendToLLM = async (prompt: string, options?: {
     responseType: 'text/plain' | 'application/json'
 }) => {
-    const {
-        responseType = 'text/plain'
-    } = options || {};
-    //  ***** Integrate Gemini API call here *****
-    //  1. Get your API key (see [https://cloud.google.com/generative-ai/docs/quickstart](https://cloud.google.com/generative-ai/docs/quickstart))
-    //  2. Replace 'YOUR_API_KEY' with your actual key 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // Or use 'gemini-1.5-flash' for a more general model 
+    const { responseType = 'text/plain' } = options || {};
 
-    // Call Gemini API with the content of the output file
+    // Get your API key from environment variable
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('Please set the GEMINI_API_KEY environment variable.');
+    }
+
+    // Initialize Gemini client and get the model
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const response = await model.generateContent({
         contents: [{
             role: 'user',
             parts: [{
                 text: prompt
-            }]
+            }],
         }],
         generationConfig: {
             responseMimeType: responseType
@@ -67,6 +64,11 @@ export const saveLLMPrompt = async (response: string) => {
 
 export const saveLLMResponse = async (response: string) => {
     fs.writeFileSync(LLM_RESPONSE_FILE, response);
+};
+
+export const saveCodeBlock = async (code: string) => {
+    fs.writeFileSync(DIFF_PATCH_FILE, code);
+    console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
 };
 
 export const readLastLLMResponse = async () => {
@@ -115,7 +117,6 @@ export const handleLLMInteraction = async (folderPath: string) => {
     // Process the post-prompt
     processPostPrompt(folderPath, outputFile);
 
-    // Append IGNORE_LINE_NUMBERS to the output file
     writeEmptyLines(outputFile);
 
     // Copy the output file to the clipboard
@@ -132,7 +133,7 @@ const implementLLMDiff = async (llmPrompt: string) => {
 
         const response = await sendToLLM(llmPrompt);
         try {
-            let diff = parseDiff(response);
+            let diff = parseCode(response, 'diff');
             retryCount = 0;
 
             saveLLMResponse(response);
@@ -182,124 +183,71 @@ const implementLLMDiff = async (llmPrompt: string) => {
     }
 };
 
-export const generateCommitMessages = async () => {
-    const gitDiff = getGitDiff();
-    const response = await sendToLLM(`
-        ${GENERATE_COMMIT_MSG}
-        \n\n\n\n\n\n\n
-        ${gitDiff}
-    `, {
-        responseType: 'application/json'
-    });
-
-    saveLLMResponse(response);
-
-    const commitMessages = JSON.parse(response);
-
-    const answers = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'action',
-            message: 'Choose the commit message to apply',
-            choices: commitMessages?.map((msg) => ({
-                name: msg.commit,
-                value: msg.commit
-            })),
-            default: 'send',
-        }
-    ] as inquirer.Question[]);
-
-    const commitMsg = commitMessages?.find((msg) => msg.commit === answers.action);
-    gitCommit(commitMsg.commit, commitMsg.description);
+export const generateCommitMessages = async (folderPath: string) => {
+    runPrompt(promptConfigs.generateCommitMessages(folderPath));
 };
 
 export const suggestThings = async (folderPath: string) => {
-    const content = getDirectoryContent(folderPath);
-    const response = await sendToLLM(`
-        ${content}
-        \n\n\n\n\n\n\n
-        ${SUGGEST_THINGS}
-        `, {
-        responseType: 'application/json'
+    runPrompt(promptConfigs.suggestThings(folderPath));
+};
+
+// this function will take a prompt config object
+// and will implement the prompt and handle response
+export const runPrompt = async (promptConfig: PromptConfig) => {
+    const rootDir = promptConfig.rootDir;
+
+    console.info(`Working with folder: ${rootDir}`);
+
+    const context: PromptConfigContext = {
+        rootDir,
+        codeContent: getDirectoryContent(rootDir),
+        ask: async (question: inquirer.Question) => {
+            return await inquirer.prompt(question);
+        },
+        copyToClipboard: (content) => {
+            copyOutputToClipboard(content);
+        },
+        log: (message) => {
+            console.log(message);
+        },
+        getCodeBlockFromResponse: async (diff) => {
+            return parseCode(diff, 'diff');
+        },
+        applyCodeDiff: async (diff) => {
+            console.log('Appllying diff...');
+            await applyDiff(diff);
+            console.log('Diff applied!');
+        },
+        runPrompt,
+    };
+
+    let finalPrompt = ``;
+
+    // Process the pre-prompt
+    const prePrompt = await promptConfig.prePrompt(context);
+    console.info(`Pre-prompt: ${prePrompt}`);
+    finalPrompt += prePrompt;
+
+    // Process the code content in the rootDir
+    const content = await promptConfig.processContent(context);
+    console.info(`Content: ${content}`);
+    finalPrompt += content;
+
+    // Process the post-prompt
+    const postPrompt = await promptConfig.postPrompt(context);
+    console.info(`Post-prompt: ${postPrompt}`);
+    finalPrompt += postPrompt;
+
+    console.info(`Final prompt: ${finalPrompt}`);
+
+    // Handle response
+    const llmResponse = await sendToLLM(finalPrompt, {
+        responseType: promptConfig.responseType,
     });
-
-    saveLLMResponse(response);
-
-    const suggestions = JSON.parse(response);
-
-    const answers = await inquirer.prompt([
-        {
-            type: 'list',
-            name: 'action',
-            message: 'Choose the commit message to apply',
-            choices: suggestions?.map((suggestion) => ({
-                name: suggestion,
-                value: suggestion
-            })),
-            default: 'send',
-        }
-    ] as inquirer.Question[]);
-    implementLLMDiff(`
-        ${content}
-        \n\n\n\n\n\n\n
-        ${answers.action}
-    `);
+    console.info(`LLM response: ${llmResponse}`);
+    await promptConfig.handleResponse(llmResponse, context);
 };
 
 export const customPrompt = async (folderPath: string) => {
-    const sysInstruction: string = await autocomplete({
-        message: 'Please provide system instructions or choose from the list',
-        source: async (input) => {
-            const prompts = getPreviousRecords(PRE_PROMPT_FILE);
-            const instructions = prompts.filter((prompt) => prompt.includes(input || ''));
-            if (instructions.length === 0) {
-                instructions.push(DEFAULT_PRE_PROMPT);
-            }
-            return [
-                ...(instructions.map((instruction) => ({
-                value: instruction,
-                description: instruction
-            }))),
-            ...(input ? [{ value: input, description: input }] : [])
-        ];
-        }
-    })
-
-    process.env['EDITOR'] = 'code';
-    const sysInstructionEdited = await editor({
-        message: 'Please choose a system instruction',
-        default: sysInstruction as string
-    });
-
-    saveNewRecord(PRE_PROMPT_FILE, sysInstructionEdited);
-
-    const content = getDirectoryContent(folderPath);
-    const postPrompt: string = await autocomplete({
-        message: 'Please provide a custom prompts or choose from the list',
-        source: async (input) => {
-            const prompts = getPreviousRecords(POST_PROMPTS_FILE);
-            const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
-            return [
-                ...(filteredPrompts.map((prompt) => ({
-                value: prompt,
-                description: prompt
-            })) || []),
-            ...(input ? [{ value: input, description: input }] : [])
-        ];
-        }
-    })
-    if (!sysInstruction) {
-        console.error(`You didn't provide a valid prompt!`);
-        return;
-    }
-
-    saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
-
-    implementLLMDiff(`
-${sysInstruction?.trim()}
-        \n\n\n\n\n\n\n
-        ${content}
-        \n\n\n\n\n\n\n
-${postPrompt?.trim()}
-    `);
+    runPrompt(promptConfigs.customPrompt(folderPath));
 };

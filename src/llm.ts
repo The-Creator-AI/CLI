@@ -3,7 +3,6 @@ import * as path from 'path';
 import {
     DEFAULT_POST_PROMPT,
     DEFAULT_PRE_PROMPT,
-    IGNORE_LINE_NUMBERS,
     OUTPUT_FILE,
     POST_PROMPT_FILE,
     PRE_PROMPT_FILE
@@ -45,7 +44,6 @@ export const processPostPrompt = (folderPath: string, outputFile: string): void 
         const prompt = fs.readFileSync(requestFile, 'utf8');
         fs.appendFileSync(outputFile, prompt);
         fs.appendFileSync(outputFile, '\n');
-        fs.appendFileSync(outputFile, IGNORE_LINE_NUMBERS);
     } else {
         // create a post-prompt file
         console.log(`Creating a prompt file: ${requestFile}`);
