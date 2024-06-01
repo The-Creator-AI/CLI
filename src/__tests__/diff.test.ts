@@ -1,13 +1,23 @@
 import { getDiffHunks, parseCode } from "../diff.js";
 
 describe('parseCode', () => {
-    it('should parse the diff correctly', () => {
+    it('should parse the diff correctly with line numbers', () => {
         const llmResponse = `\`\`\`diff
-10. Here goes the diff
-\`\`\`
+1. Here goes the diff
++3. This is another line
+\`\`\``;
+        const diff = parseCode(llmResponse, 'diff');
+        expect(diff).toBe('Here goes the diff\n+This is another line');
+    });
+
+    it('should parse the diff correctly without line numbers', () => {
+        const llmResponse = `\`\`\`diff
+Here goes the diff
+This is another line
+        \`\`\`
         `;
         const diff = parseCode(llmResponse, 'diff');
-        expect(diff).toBe('Here goes the diff');
+        expect(diff).toBe('Here goes the diff\nThis is another line');
     });
 });
 
