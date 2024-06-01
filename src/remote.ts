@@ -1,8 +1,10 @@
 import {
     copyOutputToClipboard,
     getGitDiff,
+    getPreviousCustomPrompts,
     gitCommit,
     readFileContent,
+    saveNewCustomPrompt,
     writeEmptyLines,
 } from './utils.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -240,12 +242,24 @@ export const customPrompt = async (folderPath: string) => {
     const answer = await autocomplete({
         message: 'Please provide a custom prompts or choose from the list',
         source: async (input) => {
-            return [{
-                value: input,
-                description: input
-            }];
+            const prompts = getPreviousCustomPrompts();
+            const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
+            return [
+                ...(filteredPrompts.map((prompt) => ({
+                value: prompt,
+                description: prompt
+            })) || []),
+            ...(input ? [{ value: input, description: input }] : [])
+        ];
         }
-    });
+    })
+    if (!answer) {
+        console.error(`You didn't provide a valid prompt!`);
+        return;
+    }
+
+    saveNewCustomPrompt(answer as string);
+
     implementLLMDiff(`
         ${content}
         \n\n\n\n\n\n\n

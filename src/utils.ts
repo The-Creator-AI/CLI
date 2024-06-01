@@ -2,7 +2,8 @@ import * as child_process from 'child_process'; // Import child_process module
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-    BINARY_EXTENSTIONS
+    BINARY_EXTENSTIONS,
+    CUSTOM_PROMPTS_FILE
 } from './constants.js';
 
 // Function to write empty lines to the output file
@@ -23,7 +24,8 @@ export const readFileContent = (filePath: string): string => {
 
 // Function to check if the path is a directory
 export const isDirectory = (dirPath: string): boolean => {
-    return fs.lstatSync(dirPath).isDirectory();};
+    return fs.lstatSync(dirPath).isDirectory();
+};
 
 // Function to check if a file is binary
 export const isBinaryFile = (filePath: string): boolean => {
@@ -98,3 +100,18 @@ export const gitCommit = (commitMessage: string, commitDescription: string) => {
 //     // or output a progress bar, etc
 //     ui.updateBottomBar('new bottom bar content');
 // }
+
+export const getPreviousCustomPrompts = () => {
+    try {
+        return JSON.parse((fs.readFileSync(CUSTOM_PROMPTS_FILE).toString() || `[]`))
+    } catch(_) {
+        return [];
+    }
+};
+
+export const saveNewCustomPrompt = async (prompt: string) => {
+    fs.writeFileSync(CUSTOM_PROMPTS_FILE, JSON.stringify([
+        ...getPreviousCustomPrompts(),
+        prompt
+    ], null, 2));
+};
