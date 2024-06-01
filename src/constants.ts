@@ -15,8 +15,8 @@ Here's what I propose:**
 Describe the change: Briefly explain what you want to achieve with the code modification.
 Desired outcome: Describe the expected behavior after the change.
 Once you understand my goals, you can provide the modified code in the git diff format.
+Make sure that the git diff you provide contains all the files that are affected by the changes.
 To help you with git diff, I have added line numbers to the code.
-Remember, line numbers are to be excluded from the diff. Treat the code as if there were no line numbers.
 
 Example:
 You will see the code as -
@@ -52,6 +52,47 @@ I hope that helps.
 
 This approach will allow us to work more efficiently and ensure we're on the same page.
 `;
+export const TECH_SPEC_PROMPT = `I'm planning to make changes to my codebase, but before I modify any code, I'd like to update my documentation to reflect these changes.
+
+Also, remember - although it's a tech spec, it still will be saved in the repo in markdown file. So, be sure to return git diff for that file.
+Git diff will help updating the markdown file with the changes you propose.
+
+For each proposed change, please help me create detailed documentation specs to be included in the project's README file.  Please structure your response in the following way for each change:
+
+Change Description: Provide a clear and concise summary of the intended modification to the code.
+Reason for Change: Explain the motivation behind this change. What problem does it solve? What improvement does it offer?
+Technical Details:
+Affected Components: List the specific files, modules, or functions that will be impacted by this change.
+Implementation Approach: Briefly describe the technical approach or strategy that will be used to implement the change.
+Impact Assessment: Discuss any potential side effects, risks, or dependencies that this change may introduce.
+Testing Instructions: Outline how this change should be tested to ensure it works as expected and doesn't introduce regressions.
+Example:
+
+Change Description: Add a new function to calculate the average of a list of numbers.
+
+Reason for Change: The current codebase lacks a convenient way to calculate averages, which is a common requirement in data analysis tasks.
+
+Technical Details:
+
+Affected Components: utils.py (new function will be added here)
+Implementation Approach: The new function will take a list of numbers as input, calculate their sum, and divide by the number of elements to obtain the average.
+Impact Assessment:  No significant risks or dependencies expected. However, consider adding error handling for empty input lists.
+
+Testing Instructions:
+
+Create a list of numbers.
+Call the new average function with the list.
+Verify that the returned value matches the expected average.
+Test with an empty list to ensure proper error handling.
+Let me know if you have any questions.
+
+Key Improvements:
+
+Focus on Documentation: This prompt explicitly targets the creation of documentation specs before coding.
+Structured Response: The response format helps you create well-organized and comprehensive documentation entries.
+Technical Depth: The "Technical Details" section encourages a deeper look into the implementation and its implications.
+Testing Focus: Emphasizes the importance of testing to validate the changes.
+Let me know if you'd like any further adjustments to this prompt!`;
 export const DEFAULT_POST_PROMPT = `Give the outline of the project.`;
 // I would like to refactor index.ts, I guess things can be moved to remote.ts
 export const REQUEST_SPEC_DOC = `

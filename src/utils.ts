@@ -113,7 +113,7 @@ export const saveNewRecord = async (filePath: string, record: any) => {
         fs.mkdirSync(path.dirname(filePath), { recursive: true });
     }
     fs.writeFileSync(filePath, JSON.stringify([...new Set([
+        record,
         ...getPreviousRecords(filePath),
-        record
     ])], null, 2));
 };

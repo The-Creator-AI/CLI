@@ -4,7 +4,8 @@ import {
     DEFAULT_PRE_PROMPT,
     GENERATE_COMMIT_MSG,
     POST_PROMPTS_FILE,
-    SUGGEST_THINGS
+    SUGGEST_THINGS,
+    TECH_SPEC_PROMPT
 } from './constants.js';
 import type { PromptConfig } from './types.js';
 import {
@@ -17,6 +18,38 @@ import { parseCode } from './diff.js';
 
 
 export const promptConfigs = {
+    codeSpec: (folderPath: string) => {
+        return {
+            label: 'Code Spec',
+            rootDir: folderPath,
+            responseType: 'text/plain',
+            prePrompt: async () => TECH_SPEC_PROMPT,
+            processContent: async (context) => {
+                return context.codeContent;
+            },
+            postPrompt: async () => {
+                const postPrompt: string = await autocomplete({
+                    message: 'What spec would you like to create/update?',
+                    source: async (input) => {
+                        const prompts = getPreviousRecords(POST_PROMPTS_FILE);
+                        const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
+                        return [
+                            ...(filteredPrompts.map((prompt) => ({
+                                value: prompt,
+                                description: prompt
+                            })) || []),
+                            ...(input ? [{ value: input, description: input }] : [])
+                        ];
+                    }
+                });
+                saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
+                return postPrompt.trim();
+            },
+            handleResponse: async (context) => {
+                context.applyCodeDiff(context);
+            }
+        } as PromptConfig;
+    },
     codeDiff: (folderPath: string) => {
         return {
             label: 'Code Diff',
@@ -28,7 +61,7 @@ export const promptConfigs = {
             },
             postPrompt: async () => {
                 const postPrompt: string = await autocomplete({
-                    message: 'Please provide a custom prompts or choose from the list',
+                    message: 'What changes would you like to make to the code?',
                     source: async (input) => {
                         const prompts = getPreviousRecords(POST_PROMPTS_FILE);
                         const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
