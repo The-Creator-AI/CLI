@@ -1,5 +1,4 @@
 export const SETTINGS_FOLDER = '.llm';
-export const PRE_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'system-instruction.llm';
 export const POST_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'prompt.llm';
 export const OUTPUT_FILE = SETTINGS_FOLDER + '/' + 'content.llm';
 export const LLM_RESPONSE_FILE = SETTINGS_FOLDER + '/' + 'llm-response.llm';

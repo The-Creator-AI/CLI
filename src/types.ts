@@ -13,6 +13,7 @@ export interface PromptConfigContext {
 }
 
 export interface PromptConfig {
+    label: string; // Label for the prompt
     rootDir: string; // Path to the project folder
     responseType: 'text/plain' | 'application/json';
     prePrompt: (context: PromptConfigContext) => Promise<string>; // Function to generate a pre-prompt

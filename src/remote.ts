@@ -69,6 +69,10 @@ export const saveCodeBlock = async (code: string) => {
     console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
 };
 
+export const readLastCodeBlock = () => {
+    return readFileContent(DIFF_PATCH_FILE).toString();
+};
+
 export const readLastLLMResponse = async () => {
     return readFileContent(LLM_RESPONSE_FILE);
 };

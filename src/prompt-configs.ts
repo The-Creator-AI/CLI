@@ -4,7 +4,6 @@ import {
     DEFAULT_PRE_PROMPT,
     GENERATE_COMMIT_MSG,
     POST_PROMPTS_FILE,
-    PRE_PROMPT_FILE,
     SUGGEST_THINGS
 } from './constants.js';
 import type { PromptConfig } from './types.js';
@@ -18,41 +17,12 @@ import { parseCode } from './diff.js';
 
 
 export const promptConfigs = {
-    customPrompt: (folderPath: string) => {
+    codeDiff: (folderPath: string) => {
         return {
+            label: 'Code Diff',
             rootDir: folderPath,
             responseType: 'text/plain',
-            prePrompt: async () => {
-                // Initialize the output file
-                const sysInstruction: string = await autocomplete({
-                    message: 'Please provide system instructions or choose from the list',
-                    source: async (input) => {
-                        const prompts = getPreviousRecords(PRE_PROMPT_FILE);
-                        const instructions = prompts.filter((prompt) => prompt.includes(input || ''));
-                        if (instructions.length === 0) {
-                            instructions.push(DEFAULT_PRE_PROMPT);
-                        }
-                        return [
-                            ...(instructions.map((instruction) => ({
-                                value: instruction,
-                                description: instruction
-                            }))),
-                            ...(input ? [{ value: input, description: input }] : [])
-                        ];
-                    }
-                });
-                if (!sysInstruction) {
-                    console.error(`You didn't provide a valid prompt!`);
-                    return ``;
-                }
-                // process.env['EDITOR'] = 'code';
-                // const sysInstructionEdited = await editor({
-                //     message: 'Please choose a system instruction',
-                //     default: sysInstruction as string
-                // });
-                saveNewRecord(PRE_PROMPT_FILE, sysInstruction);
-                return sysInstruction;
-            },
+            prePrompt: async () => DEFAULT_PRE_PROMPT,
             processContent: async (context) => {
                 return context.codeContent;
             },
@@ -81,6 +51,7 @@ export const promptConfigs = {
     },
     suggestThings: (folderPath: string) => {
         return {
+            label: 'Suggest Things',
             rootDir: folderPath,
             responseType: 'text/plain',
             prePrompt: async () => {
@@ -109,6 +80,7 @@ export const promptConfigs = {
                     }
                 ]);
                 context.runPrompt({
+                    label: 'Code Diff',
                     rootDir: folderPath,
                     responseType: 'text/plain',
                     prePrompt: async () => DEFAULT_PRE_PROMPT,
@@ -123,6 +95,7 @@ export const promptConfigs = {
     },
     generateCommitMessages: (folderPath: string) => {
         return {
+            label: 'Generate Commit Messages',
             rootDir: folderPath,
             responseType: 'application/json',
             prePrompt: async () => GENERATE_COMMIT_MSG,
