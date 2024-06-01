@@ -52,6 +52,13 @@ I hope that helps.
 This approach will allow us to work more efficiently and ensure we're on the same page.
 `;
 export const DEFAULT_POST_PROMPT = `Give the outline of the project.`;
+// I would like to refactor index.ts, I guess things can be moved to remote.ts
+export const REQUEST_SPEC_DOC = `
+Instead of making the changes, create a spec document in docs folder.
+Name it index-refactor-<date-time>.md, and explain the changes you'll make.
+Try avoiding writing actual code in this file, but ensure to write which files/functions need 
+to be changed. Also, what exactly to be modified in those function, epxlain in natural language.
+`;
 export const IGNORE_LINE_NUMBERS = `Remember, line numbers are to be excluded from the diff. Treat the code as if there were no line numbers.`;
 export const BINARY_EXTENSTIONS = [
     "3dm",
