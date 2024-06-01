@@ -1,0 +1,23 @@
+{
+  "preset": "ts-jest",
+  "testEnvironment": "jest-environment-node",
+  "transformIgnorePatterns": ["/node_modules/(?!(your-dependency)/)"],
+  "moduleFileExtensions": ["ts", "js", "mjs"],
+  "globals": {
+    "ts-jest": {
+      "tsconfig": "tsconfig.json",
+      "useESM": true
+    }
+  },
+  "testPathIgnorePatterns": ["/node_modules/", "/dist/"],
+  "collectCoverage": true,
+  "collectCoverageFrom": ["src /**/*.ts"],
+  "extensionsToTreatAsEsm": [".ts"],
+  "transform": {
+    "\\.[jt]sx?$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^(\\.\\.?\\/.+)\\.js$": "$1"
+  }
+}
+

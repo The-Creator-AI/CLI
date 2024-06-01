@@ -1,12 +1,12 @@
-import { getDiffHunks, parseDiff } from "../diff";
+import { getDiffHunks, parseCode } from "../diff.js";
 
-describe('parseDiff', () => {
+describe('parseCode', () => {
     it('should parse the diff correctly', () => {
         const llmResponse = `\`\`\`diff
 10. Here goes the diff
 \`\`\`
         `;
-        const diff = parseDiff(llmResponse);
+        const diff = parseCode(llmResponse, 'diff');
         expect(diff).toBe('Here goes the diff');
     });
 });

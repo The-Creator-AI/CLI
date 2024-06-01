@@ -1,6 +1,6 @@
 import fs from 'fs';
 import mockFs from 'mock-fs'; // Import the mock-fs library
-import { getIgnorePatterns, isIgnored } from '../ignore';
+import { getIgnorePatterns, isIgnored } from '../ignore.js';
 
 describe('getIgnorePatterns', () => {
     beforeEach(() => {
