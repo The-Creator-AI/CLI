@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import { DIFF_PATCH_FILE } from './constants';
+import { prompt, Question } from 'inquirer';
 import { applyDiff } from './diff';
 import {
   initializeOutputFile,
@@ -17,11 +18,42 @@ import {
 
 // Function to handle the main execution flow
 const main = async () => {
-  const folderPath = process.argv.length > 2 ? process.argv[2] : process.cwd();
-  const applyLast = process.argv.length > 2 && process.argv.includes('--applyLast');
+  const answers = await prompt([
+    {
+      type: 'input',
+      name: 'folderPath',
+      message: 'Enter the path to the folder containing your project:',
+      default: process.cwd(),
+    },
+    {
+        type: 'list',
+        name: 'action',
+        message: 'What do you want to do?',
+        choices: [
+            {
+                name: 'Send to LLM',
+                value: 'send',
+            },
+            {
+                name: 'Apply last diff',
+                value: 'apply',
+            },
+        ],
+        default: 'send',
+    }
+  ] as Question[]);
+
+  const folderPath = answers.folderPath;
+  const action = answers.action;
 
   // Initialize the output file
   const outputFile = initializeOutputFile(folderPath);
+  console.log(`Working with folder: ${folderPath}`);
+  if (!fs.existsSync(folderPath)) {
+    console.error(`Error: Path '${folderPath}' does not exist.`);
+    return;
+  }
+
 
   // Process the pre-prompt
   processPrePrompt(folderPath, outputFile);
@@ -40,7 +72,7 @@ const main = async () => {
   copyOutputToClipboard(outputFile);
 
   // Handle LLM interaction, apply diff, and handle validation
-  if (!applyLast) {
+  if (action === 'send') {
     await handleLLMInteraction(outputFile);
   } else {
     // Apply diff directly if `--applyLast` flag is provided

@@ -23,6 +23,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.12.0",
     "ignore": "^5.3.1",
+    "inquirer": "^8.2.6",
     "node-fetch": "^2.6.6",
     "parse-diff": "^0.11.1",
     "parse-gitignore": "^2.0.0"
