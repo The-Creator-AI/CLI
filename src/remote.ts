@@ -233,3 +233,18 @@ export const suggestThings = async (folderPath: string) => {
         ${answers.action}
     `);
 };
+
+export const customPrompt = async (folderPath: string) => {
+    const content = getDirectoryContent(folderPath);
+    const answer = await prompt({
+        type: 'input',
+        name: 'input',
+        message: 'Please provide a custom prompts.',
+        default: true
+    });
+    implementLLMDiff(`
+        ${content}
+        \n\n\n\n\n\n\n
+        ${answer.input}
+    `);
+};

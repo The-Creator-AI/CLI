@@ -3,6 +3,7 @@ import { prompt, Question } from 'inquirer';
 import { DIFF_PATCH_FILE } from './constants';
 import { applyDiff } from './diff';
 import {
+  customPrompt,
   generateCommitMessages,
   handleLLMInteraction,
   suggestThings
@@ -23,6 +24,10 @@ const main = async () => {
       message: 'What do you want to do?',
       choices: [
         {
+          name: 'Custom prompt',
+          value: 'custom-prompt',
+        },
+        {
           name: 'Send prompt from prompt.llm with entire repo context',
           value: 'send',
         },
@@ -37,7 +42,7 @@ const main = async () => {
         {
           name: 'Suggest things that I can do',
           value: 'suggest-things',
-        }
+        },
       ],
       default: 'send',
     }
@@ -46,8 +51,11 @@ const main = async () => {
   const folderPath = answers.folderPath;
   const action = answers.action;
 
+  if (action === 'custom-prompt') {
+    await customPrompt(folderPath);
+  }
   // Handle LLM interaction, apply diff, and handle validation
-  if (action === 'send') {
+  else if (action === 'send') {
     await handleLLMInteraction(folderPath);
   } else if (action === 'apply-last-diff') {
     // Apply diff directly if `--applyLast` flag is provided
@@ -55,12 +63,12 @@ const main = async () => {
     const diff = fs.readFileSync(DIFF_PATCH_FILE).toString();
     // Apply diff
     console.log('Applying diff...');
-    applyDiff(diff);
+    await applyDiff(diff);
     console.log('Diff applied!');
   } else if (action === 'commit-message') {
-    generateCommitMessages();
+    await generateCommitMessages();
   } else if (action === 'suggest-things') {
-    suggestThings(folderPath);
+    await suggestThings(folderPath);
   }
 
   return 'Done';
