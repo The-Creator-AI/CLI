@@ -44,9 +44,7 @@ export const getFilePathAndCode = (filePath: string) => {
     if (!isBinary) {
         const relativeFilePath = getRelativePath(filePath);
         const code = getCodeWithLineNbr(filePath);
-        const fileContent = `
-            ${relativeFilePath}
-            ${code}
+        const fileContent = `## ${relativeFilePath}\n\n\n${code}
             \n\n\n\n\n\n
         `;
         return fileContent;

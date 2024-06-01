@@ -168,9 +168,8 @@ export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptCon
 
     console.info(`Working with folder: ${rootDir}`);
 
-    const context: PromptConfigContext = _context || {
+    const context: PromptConfigContext = {
         rootDir,
-        codeContent: getDirectoryContent(rootDir),
         ask: async (question: inquirer.Question) => {
             return await inquirer.prompt(question);
         },
@@ -186,6 +185,8 @@ export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptCon
         runPrompt,
         prompt: '',
         response: '',
+        ..._context,
+        codeContent: getDirectoryContent(rootDir),
     };
 
     // Process the pre-prompt

@@ -30,7 +30,7 @@ export const promptConfigs = {
                     type: 'input',
                     name: 'command',
                     message: 'Enter the command to run:',
-                    default: 'npm run build',
+                    default: 'npm run scrape',
                 }]);
                 return new Promise((resolve, _) => {
                     context.data = {
