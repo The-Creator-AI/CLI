@@ -15,9 +15,75 @@ import {
     saveNewRecord
 } from './utils.js';
 import { parseCode } from './diff.js';
+import * as child_process from 'child_process';
 
 
 export const promptConfigs = {
+    runAndFix: (folderPath: string) => {
+        return {
+            label: 'Run and Fix',
+            rootDir: folderPath,
+            responseType: 'text/plain',
+            prePrompt: async () => DEFAULT_PRE_PROMPT,
+            processContent: async (context) => {
+                const { command } = context.data?.runAndFix || await context.ask([{
+                    type: 'input',
+                    name: 'command',
+                    message: 'Enter the command to run:',
+                    default: 'npm run build',
+                }]);
+                return new Promise((resolve, _) => {
+                    context.data = {
+                        runAndFix: {
+                            command,
+                        }
+                    };
+                    console.log(`Running command: ${command}`);
+                    child_process.exec(command, (stderr, stdout, _) => {
+                        console.log('Command Output: ', stdout);
+                        console.log('Command Error: ', stderr);
+                        let output = ``;
+                        output += context.codeContent;
+                        output += `\n\n\n\n\n\n`;
+                        output += `$ ${command}`
+                        output += `\n\n`;
+                        output += `stdout:`;
+                        output += `\n\n`;
+                        output += stdout;
+                        output += `stderr:`;
+                        output += `\n\n`;
+                        output += stderr;
+                        resolve(output);
+                    });
+                });
+            },
+            postPrompt: async () => {
+                return 'Now, can you provide the fix for the errors in the output above?';
+            },
+            handleResponse: async (context) => {
+                context.applyCodeDiff(context);
+                const { action } = await context.ask([{
+                    type: 'list',
+                    name: 'action',
+                    message: 'What do you want to do next?',
+                    choices: [
+                        {
+                            name: 'Run command again',
+                            value: 'run-again'
+                        },
+                        {
+                            name: 'Do something else',
+                            value: 'do-something-else'
+                        }
+                    ],
+                    default: 'send',
+                }]);
+                if (action === 'run-again') {
+                    context.runPrompt(promptConfigs.runAndFix(context.rootDir), context);
+                }
+            }
+        } as PromptConfig;
+    },
     codeSpec: (folderPath: string) => {
         return {
             label: 'Code Spec',

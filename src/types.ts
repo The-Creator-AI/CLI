@@ -7,9 +7,10 @@ export interface PromptConfigContext {
     copyToClipboard: (content: any) => void;
     log: (message: any) => void;
     applyCodeDiff: (context: PromptConfigContext) => Promise<void>;
-    runPrompt: (config: PromptConfig) => Promise<void>;
+    runPrompt: (config: PromptConfig, _context?: PromptConfigContext) => Promise<void>;
     prompt: string;
     response: string;
+    data?: any;
 }
 
 export interface PromptConfig {

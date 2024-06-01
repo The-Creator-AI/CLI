@@ -163,12 +163,12 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
 
 // this function will take a prompt config object
 // and will implement the prompt and handle response
-export const runPrompt = async (promptConfig: PromptConfig) => {
+export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptConfigContext) => {
     const rootDir = promptConfig.rootDir;
 
     console.info(`Working with folder: ${rootDir}`);
 
-    const context: PromptConfigContext = {
+    const context: PromptConfigContext = _context || {
         rootDir,
         codeContent: getDirectoryContent(rootDir),
         ask: async (question: inquirer.Question) => {

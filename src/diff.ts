@@ -22,8 +22,8 @@ export const parseCode = (llmResponse: string, type: 'diff' | 'json') => {
     // 10. This is a line
     // 11. This is another line
     // Then remove those extra characters
-    code = code.replace(/\s*\d+\.\s/g, '');
-    return code;
+    code = code.replace(/([+-\s*])\d+\s*[\.|]\s/g, '$1');
+    return code.trim();
 };
 
 export const getDiffHunks = (diff: string) => {
