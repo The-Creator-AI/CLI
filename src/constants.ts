@@ -1,9 +1,10 @@
-export const PRE_PROMPT_FILE = 'system-instruction.llm';
-export const POST_PROMPT_FILE = 'prompt.llm';
-export const OUTPUT_FILE = 'content.llm';
-export const LLM_RESPONSE_FILE = 'llm-response.llm';
-export const DIFF_PATCH_FILE = 'diff.patch';
-export const POST_PROMPTS_FILE = 'custom-prompts.llm';
+export const SETTINGS_FOLDER = '.llm';
+export const PRE_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'system-instruction.llm';
+export const POST_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'prompt.llm';
+export const OUTPUT_FILE = SETTINGS_FOLDER + '/' + 'content.llm';
+export const LLM_RESPONSE_FILE = SETTINGS_FOLDER + '/' + 'llm-response.llm';
+export const DIFF_PATCH_FILE = SETTINGS_FOLDER + '/' + 'diff.patch';
+export const POST_PROMPTS_FILE = SETTINGS_FOLDER + '/' + 'custom-prompts.llm';
 export const COMPLETE_DIFF_REQUEST = `The diff you provided is correct but it is not complete. Please provide the rest of the changes. Are you sure you have covered all the required files? Functions? etc.`;
 export const BETTERS_DIFF_REQUEST = `The diff seems to be corrupted, please provide the correct diff again.`;
 export const DEFAULT_PRE_PROMPT = `I'd like to make some changes to my codebase, and I'd appreciate your help.

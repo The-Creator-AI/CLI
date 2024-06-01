@@ -9,13 +9,11 @@ import {
     OUTPUT_FILE
 } from './constants.js';
 import { applyDiff, parseCode } from './diff.js';
-import { getDirectoryContent, initializeOutputFile, processPostPrompt, processPrePrompt } from './llm.js';
-import { promptConfigs } from './prompt-configs.js';
+import { getDirectoryContent } from './llm.js';
 import type { PromptConfig, PromptConfigContext } from './types.js';
 import {
     copyOutputToClipboard,
-    readFileContent,
-    writeEmptyLines
+    readFileContent
 } from './utils.js';
 
 // global fetch
@@ -75,74 +73,44 @@ export const readLastLLMResponse = async () => {
     return readFileContent(LLM_RESPONSE_FILE);
 };
 
-export const requestCompleteDiff = async () => {
-    const lastLLMResponse = await readLastLLMResponse();
-    const llmPrompt = `
+export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse: string) => {
+    const newPrompt = `
+    ${lastLLMPrompt}
+    \n\n\n\n\n
+    Modlel Response:
+    \n\n
     ${lastLLMResponse}
     \n\n\n\n\n
     ${COMPLETE_DIFF_REQUEST}
     `;
-    const response = await sendToLLM(readFileContent(llmPrompt));
-    implementLLMDiff(response);
+    saveLLMPrompt(newPrompt);
+    const response = await sendToLLM(newPrompt);
+    saveLLMResponse(response);
+    applyCodeDiff(newPrompt, response);
 };
 
-export const requestBetterDiff = async () => {
-    const lastLLMResponse = await readLastLLMResponse();
-    const llmPrompt = `
+export const requestBetterDiff = async (lastLLMPrompt: string, lastLLMResponse: string) => {
+    const newPrompt = `
+    ${lastLLMPrompt}
+    \n\n\n\n\n
+    Modlel Response:
+    \n\n
     ${lastLLMResponse}
     \n\n\n\n\n
     ${BETTERS_DIFF_REQUEST}
     `;
-    const response = await sendToLLM(readFileContent(llmPrompt));
-    implementLLMDiff(response);
+    saveLLMPrompt(newPrompt);
+    const response = await sendToLLM(newPrompt);
+    saveLLMResponse(response);
+    applyCodeDiff(newPrompt, response);
 };
 
-// Function to handle the interaction with the LLM and apply the diff
-export const handleLLMInteraction = async (folderPath: string) => {
-    // Initialize the output file
-    const outputFile = initializeOutputFile(folderPath);
-    console.log(`Working with folder: ${folderPath}`);
-    if (!fs.existsSync(folderPath)) {
-        console.error(`Error: Path '${folderPath}' does not exist.`);
-        return;
-    }
-
-    // Process the pre-prompt
-    processPrePrompt(folderPath, outputFile);
-
-    // Process the folder and its contents
-    const content = getDirectoryContent(folderPath);
-    fs.appendFileSync(outputFile, content);
-
-    // Process the post-prompt
-    processPostPrompt(folderPath, outputFile);
-
-    writeEmptyLines(outputFile);
-
-    // Copy the output file to the clipboard
-    copyOutputToClipboard(outputFile);
-
-    implementLLMDiff(readFileContent(outputFile));
-};
-
-const implementLLMDiff = async (llmPrompt: string) => {
-    let retryCount = 0;
-    while (retryCount < 3) {
-
-        saveLLMPrompt(llmPrompt);
-
-        const response = await sendToLLM(llmPrompt);
+const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
         try {
-            let diff = parseCode(response, 'diff');
-            retryCount = 0;
+            let diff = parseCode(llmResponse, 'diff');
+            saveCodeBlock(diff);
 
-            saveLLMResponse(response);
-
-            // Write diff to diff.patch file
-            fs.writeFileSync(DIFF_PATCH_FILE, diff);
-            console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
-
-            // Apply diff
+            console.log('Appllying diff...');
             applyDiff(diff);
             console.log('Diff applied!');
 
@@ -155,7 +123,7 @@ const implementLLMDiff = async (llmPrompt: string) => {
 
             if (!answer.isDiffCorrect) {
                 console.log('Sending the prompt again for better diff.');
-                await requestBetterDiff();
+                await requestBetterDiff(llmPrompt, llmResponse);
             } else {
                 const answer = await inquirer.prompt({
                     type: 'confirm',
@@ -165,30 +133,14 @@ const implementLLMDiff = async (llmPrompt: string) => {
                 });
                 if (!answer.isDiffComplete) {
                     console.log('Sending the prompt again for complete diff.');
-                    await requestCompleteDiff();
+                    await requestCompleteDiff(llmPrompt, llmResponse);
                 }
             }
 
         } catch (error) {
-            retryCount++;
-            console.log(`
-            Response: \n\n\n\n\n\n
-            ${response}
-            `);
             console.log('Diff parsing failed, retrying...');
-            if (retryCount == 3) {
-                console.log('Diff parsing failed 3 times, exiting...');
-            }
+            await requestBetterDiff(llmPrompt, llmResponse);
         }
-    }
-};
-
-export const generateCommitMessages = async (folderPath: string) => {
-    runPrompt(promptConfigs.generateCommitMessages(folderPath));
-};
-
-export const suggestThings = async (folderPath: string) => {
-    runPrompt(promptConfigs.suggestThings(folderPath));
 };
 
 // this function will take a prompt config object
@@ -210,44 +162,37 @@ export const runPrompt = async (promptConfig: PromptConfig) => {
         log: (message) => {
             console.log(message);
         },
-        getCodeBlockFromResponse: async (diff) => {
-            return parseCode(diff, 'diff');
-        },
-        applyCodeDiff: async (diff) => {
-            console.log('Appllying diff...');
-            await applyDiff(diff);
-            console.log('Diff applied!');
+        applyCodeDiff: async (context) => {
+            applyCodeDiff(context.prompt,context.response);
         },
         runPrompt,
+        prompt: '',
+        response: '',
     };
-
-    let finalPrompt = ``;
 
     // Process the pre-prompt
     const prePrompt = await promptConfig.prePrompt(context);
     console.info(`Pre-prompt: ${prePrompt}`);
-    finalPrompt += prePrompt;
+    context.prompt += prePrompt;
 
     // Process the code content in the rootDir
     const content = await promptConfig.processContent(context);
-    console.info(`Content: ${content}`);
-    finalPrompt += content;
+    // console.info(`Content: ${content}`);
+    context.prompt += content;
 
     // Process the post-prompt
     const postPrompt = await promptConfig.postPrompt(context);
     console.info(`Post-prompt: ${postPrompt}`);
-    finalPrompt += postPrompt;
+    context.prompt += postPrompt;
 
-    console.info(`Final prompt: ${finalPrompt}`);
+    // console.info(`Final prompt: ${finalPrompt}`);
+    saveLLMPrompt(context.prompt);
 
     // Handle response
-    const llmResponse = await sendToLLM(finalPrompt, {
+    context.response = await sendToLLM(context.prompt, {
         responseType: promptConfig.responseType,
     });
-    console.info(`LLM response: ${llmResponse}`);
-    await promptConfig.handleResponse(llmResponse, context);
-};
-
-export const customPrompt = async (folderPath: string) => {
-    runPrompt(promptConfigs.customPrompt(folderPath));
+    saveLLMResponse(context.response);
+    console.info(`LLM response: ${context.response}`);
+    await promptConfig.handleResponse(context);
 };

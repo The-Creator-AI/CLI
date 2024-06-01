@@ -3,11 +3,9 @@ import inquirer from 'inquirer';
 import { DIFF_PATCH_FILE } from './constants.js';
 import { applyDiff } from './diff.js';
 import {
-  customPrompt,
-  generateCommitMessages,
-  handleLLMInteraction,
-  suggestThings
+  runPrompt,
 } from './remote.js';
+import { promptConfigs } from './prompt-configs.js';
 
 // Function to handle the main execution flow
 const main = async () => {
@@ -52,11 +50,11 @@ const main = async () => {
   const action = answers.action;
 
   if (action === 'custom-prompt') {
-    await customPrompt(folderPath);
+    await runPrompt(promptConfigs.customPrompt(folderPath));
   }
   // Handle LLM interaction, apply diff, and handle validation
   else if (action === 'send') {
-    await handleLLMInteraction(folderPath);
+    // await handleLLMInteraction(folderPath);
   } else if (action === 'apply-last-diff') {
     // Apply diff directly if `--applyLast` flag is provided
     console.log(`Reading diff from ${DIFF_PATCH_FILE}`);
@@ -66,9 +64,9 @@ const main = async () => {
     await applyDiff(diff);
     console.log('Diff applied!');
   } else if (action === 'commit-message') {
-    await generateCommitMessages(folderPath);
+    await runPrompt(promptConfigs.generateCommitMessages(folderPath));
   } else if (action === 'suggest-things') {
-    await suggestThings(folderPath);
+    await runPrompt(promptConfigs.suggestThings(folderPath));
   }
 
   return 'Done';

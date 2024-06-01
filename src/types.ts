@@ -6,9 +6,10 @@ export interface PromptConfigContext {
     ask: (questions: inquirer.Question[]) => Promise<any>;
     copyToClipboard: (content: any) => void;
     log: (message: any) => void;
-    getCodeBlockFromResponse: (diff: any) => Promise<string>;
-    applyCodeDiff: (diff: any) => Promise<void>;
+    applyCodeDiff: (context: PromptConfigContext) => Promise<void>;
     runPrompt: (config: PromptConfig) => Promise<void>;
+    prompt: string;
+    response: string;
 }
 
 export interface PromptConfig {
@@ -17,5 +18,5 @@ export interface PromptConfig {
     prePrompt: (context: PromptConfigContext) => Promise<string>; // Function to generate a pre-prompt
     postPrompt: (context: PromptConfigContext) => Promise<string>; // Function to generate a post-prompt
     processContent: (context: PromptConfigContext) => Promise<string>; // Function to process the project content
-    handleResponse: (llmResponse: string, context: PromptConfigContext) => Promise<void>; // Function to handle the LLM response
+    handleResponse: (context: PromptConfigContext) => Promise<void>; // Function to handle the LLM response
 }

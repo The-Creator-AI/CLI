@@ -1,4 +1,4 @@
-import editor from '@inquirer/editor';
+// import editor from '@inquirer/editor';
 import autocomplete from 'inquirer-autocomplete-standalone';
 import {
     DEFAULT_PRE_PROMPT,
@@ -14,7 +14,6 @@ import {
     gitCommit,
     saveNewRecord
 } from './utils.js';
-import { saveCodeBlock, saveLLMResponse } from './remote.js';
 import { parseCode } from './diff.js';
 
 
@@ -46,13 +45,13 @@ export const promptConfigs = {
                     console.error(`You didn't provide a valid prompt!`);
                     return ``;
                 }
-                process.env['EDITOR'] = 'code';
-                const sysInstructionEdited = await editor({
-                    message: 'Please choose a system instruction',
-                    default: sysInstruction as string
-                });
-                saveNewRecord(PRE_PROMPT_FILE, sysInstructionEdited);
-                return sysInstructionEdited;
+                // process.env['EDITOR'] = 'code';
+                // const sysInstructionEdited = await editor({
+                //     message: 'Please choose a system instruction',
+                //     default: sysInstruction as string
+                // });
+                saveNewRecord(PRE_PROMPT_FILE, sysInstruction);
+                return sysInstruction;
             },
             processContent: async (context) => {
                 return context.codeContent;
@@ -75,15 +74,8 @@ export const promptConfigs = {
                 saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
                 return postPrompt.trim();
             },
-            handleResponse: async (llmResponse, context) => {
-                saveLLMResponse(llmResponse);
-                try {
-                    const diff = await context.getCodeBlockFromResponse(llmResponse);
-                    saveCodeBlock(diff);
-                    context.applyCodeDiff(diff);
-                } catch (error) {
-                    console.error(`Oops! Couldn't apply code diff!`);
-                }
+            handleResponse: async (context) => {
+                context.applyCodeDiff(context);
             }
         } as PromptConfig;
     },
@@ -98,14 +90,13 @@ export const promptConfigs = {
             postPrompt: async () => {
                 return SUGGEST_THINGS;
             },
-            handleResponse: async (llmResponse, { ask, runPrompt }) => {
-                saveLLMResponse(llmResponse);
+            handleResponse: async (context) => {
 
-                const rawJson  = parseCode(llmResponse, 'json');
+                const rawJson  = parseCode(context.response, 'json');
                 const suggestions = JSON.parse(rawJson);
                 console.log(suggestions);
 
-                const answers = await ask([
+                const answers = await context.ask([
                     {
                         type: 'list',
                         name: 'action',
@@ -117,21 +108,14 @@ export const promptConfigs = {
                         default: 'send',
                     }
                 ]);
-                runPrompt({
+                context.runPrompt({
                     rootDir: folderPath,
                     responseType: 'text/plain',
                     prePrompt: async () => DEFAULT_PRE_PROMPT,
                     processContent: async (context) => context.codeContent,
                     postPrompt: () => answers.action,
-                    handleResponse: async (llmResponse, context) => {
-                        saveLLMResponse(llmResponse);
-                        try {
-                            const diff = await context.getCodeBlockFromResponse(llmResponse);
-                            saveCodeBlock(diff);
-                            context.applyCodeDiff(diff);
-                        } catch (error) {
-                            console.error(`Oops! Couldn't apply code diff!`);
-                        }
+                    handleResponse: async (context) => {
+                        context.applyCodeDiff(context);
                     }
                 });
             },
@@ -144,13 +128,11 @@ export const promptConfigs = {
             prePrompt: async () => GENERATE_COMMIT_MSG,
             processContent: async () => getGitDiff(),
             postPrompt: async () => '',
-            handleResponse: async (llmResponse, { ask }) => {
-                saveLLMResponse(llmResponse);
-
-                const rawJson  = parseCode(llmResponse, 'json');
+            handleResponse: async (context) => {
+                const rawJson  = parseCode(context.response, 'json');
                 const commitMessages = JSON.parse(rawJson);
 
-                const answers = await ask([
+                const answers = await context.ask([
                     {
                         type: 'list',
                         name: 'action',

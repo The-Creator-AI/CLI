@@ -5,12 +5,6 @@ import {
     BINARY_EXTENSTIONS
 } from './constants.js';
 
-// Function to write empty lines to the output file
-export const writeEmptyLines = (outputFile: string): void => {
-    // console.log('Writing empty lines to output file...');
-    fs.appendFileSync(outputFile, '\n\n');
-};
-
 // Function to read the content of a file
 export const readFileContent = (filePath: string): string => {
     try {
@@ -109,6 +103,10 @@ export const getPreviousRecords = (filePath: string) => {
 };
 
 export const saveNewRecord = async (filePath: string, record: any) => {
+    // ensure directory tree exists
+    if (!fs.existsSync(path.dirname(filePath))) {
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    }
     fs.writeFileSync(filePath, JSON.stringify([...new Set([
         ...getPreviousRecords(filePath),
         record
