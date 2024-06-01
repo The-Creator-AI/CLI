@@ -1,9 +1,10 @@
 import {
     readFileContent,
+    writeEmptyLines,
 } from './utils';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
-import { LLM_RESPONSE_FILE } from './constants';
+import { BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, LLM_RESPONSE_FILE } from './constants';
 import * as fs from 'fs';
 
 // global fetch
@@ -40,4 +41,28 @@ export const saveLLMResponse = async (response: string) => {
 
 export const readLastLLMResponse = async () => {
     return readFileContent(LLM_RESPONSE_FILE);
+};
+
+export const requestCompleteDiff = async (outputFile: string) => {
+    const lastLLMResponse = await readLastLLMResponse();
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, lastLLMResponse);
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, lastLLMResponse);
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, COMPLETE_DIFF_REQUEST);
+    writeEmptyLines(outputFile);
+    return await sendToLLM(outputFile);
+};
+
+export const requestBetterDiff = async (outputFile: string) => {
+    const lastLLMResponse = await readLastLLMResponse();
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, lastLLMResponse);
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, lastLLMResponse);
+    writeEmptyLines(outputFile);
+    fs.appendFileSync(outputFile, BETTERS_DIFF_REQUEST);
+    writeEmptyLines(outputFile);
+    return await sendToLLM(outputFile);
 };

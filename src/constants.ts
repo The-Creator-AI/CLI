@@ -3,6 +3,8 @@ export const POST_PROMPT_FILE = 'prompt.llm';
 export const OUTPUT_FILE = 'content.llm';
 export const LLM_RESPONSE_FILE = 'llm-response.llm';
 export const DIFF_PATCH_FILE = './diff.patch';
+export const COMPLETE_DIFF_REQUEST = `The diff you provided is correct but it is not complete. Please provide the rest of the changes.`;
+export const BETTERS_DIFF_REQUEST = `The diff seems to be corrupted, please provide the correct diff again.`;
 export const DEFAULT_PRE_PROMPT = `I'd like to make some changes to my codebase, and I'd appreciate your help.
 
 Instead of providing one long text with all the files, can we break it down by specific changes?

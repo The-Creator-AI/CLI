@@ -1,3 +1,4 @@
+import readline from 'readline';
 import { DIFF_PATCH_FILE } from './constants';
 import * as fs from 'fs';
 import {
@@ -9,7 +10,7 @@ import {
   processPostPrompt,
   processPrePrompt,
 } from './llm';
-import { saveLLMResponse, sendToLLM } from './remote';
+import { requestBetterDiff, requestCompleteDiff, saveLLMResponse, sendToLLM } from './remote';
 import { applyDiff, parseDiff } from './diff';
 
 // Main execution
@@ -39,12 +40,43 @@ copyOutputToClipboard(outputFile); // Added this line
 (async () => {
   let diff = fs.readFileSync(DIFF_PATCH_FILE).toString();
   if (!applyLast) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     let retryCount = 0;
+    const response = await sendToLLM(outputFile);
     while (retryCount < 3) {
-      const response = await sendToLLM(outputFile);
       try {
         diff = parseDiff(response);
         saveLLMResponse(response);
+
+        // Write diff to diff.patch file
+        fs.writeFileSync(DIFF_PATCH_FILE, diff);
+        console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
+
+        // Apply diff
+        applyDiff(diff);
+        console.log('Diff applied!');
+        
+        rl.question("Is the diff correct? (yes/no) ", async (answer) => {
+          if (answer.toLowerCase() === 'yes') {
+            rl.question("Is the diff complete? (yes/no) ", async (answer) => {
+              if (answer.toLowerCase() === 'yes') {
+                rl.close();
+              } else if (answer.toLowerCase() === 'no') {
+                console.log('Sending the prompt again for complete diff.');
+                await requestCompleteDiff(outputFile);
+                retryCount = 0;
+              } else {
+                console.log('Invalid input. Please enter "yes" or "no".');
+              }
+            });
+          } else if (answer.toLowerCase() === 'no') {
+            console.log('Sending the prompt again for better diff.');
+            await requestBetterDiff(outputFile);
+            retryCount = 0;
+          } else {
+            console.log('Invalid input. Please enter "yes" or "no".');
+          }
+        });
         break;
       } catch (error) {
         retryCount++;
@@ -53,16 +85,16 @@ copyOutputToClipboard(outputFile); // Added this line
           console.log('Diff parsing failed 3 times, exiting...');
         }
       }
-    }  // Write diff to diff.patch file  fs.writeFileSync(DIFF_PATCH_FILE, diff);
+    }
+  } else {
+    // Write diff to diff.patch file
+    fs.writeFileSync(DIFF_PATCH_FILE, diff);
+    console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
+
+    // Apply diff
+    applyDiff(diff);
+    console.log('Diff applied!');
   }
-
-  // Write diff to diff.patch file
-  fs.writeFileSync(DIFF_PATCH_FILE, diff);
-  console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
-
-  // Apply diff
-  applyDiff(diff);
-  console.log('Diff applied!');
 
   return 'Done'
 })();
