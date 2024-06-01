@@ -4,7 +4,8 @@ import { DIFF_PATCH_FILE } from './constants';
 import { applyDiff } from './diff';
 import {
   generateCommitMessages,
-  handleLLMInteraction
+  handleLLMInteraction,
+  suggestThings
 } from './remote';
 
 // Function to handle the main execution flow
@@ -22,7 +23,7 @@ const main = async () => {
       message: 'What do you want to do?',
       choices: [
         {
-          name: 'Send to LLM',
+          name: 'Send prompt from prompt.llm with entire repo context',
           value: 'send',
         },
         {
@@ -33,6 +34,10 @@ const main = async () => {
           name: 'Generate commit message',
           value: 'commit-message',
         },
+        {
+          name: 'Suggest things that I can do',
+          value: 'suggest-things',
+        }
       ],
       default: 'send',
     }
@@ -54,6 +59,8 @@ const main = async () => {
     console.log('Diff applied!');
   } else if (action === 'commit-message') {
     generateCommitMessages();
+  } else if (action === 'suggest-things') {
+    suggestThings(folderPath);
   }
 
   return 'Done';

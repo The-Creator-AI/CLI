@@ -9,11 +9,12 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
 import {
     BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
+    SUGGEST_THINGS,
 } from './constants';
 import * as fs from 'fs';
 import { prompt, Question } from 'inquirer';
 import { applyDiff, parseDiff } from './diff';
-import { initializeOutputFile, processDirectory, processPostPrompt, processPrePrompt } from './llm';
+import { initializeOutputFile, getDirectoryContent, processPostPrompt, processPrePrompt } from './llm';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -29,7 +30,7 @@ export const sendToLLM = async (prompt: string, options?: {
     responseType: 'text/plain' | 'application/json'
 }) => {
     const {
-        responseType = 'text'
+        responseType = 'text/plain'
     } = options || {};
     //  ***** Integrate Gemini API call here *****
     //  1. Get your API key (see [https://cloud.google.com/generative-ai/docs/quickstart](https://cloud.google.com/generative-ai/docs/quickstart))
@@ -62,28 +63,26 @@ export const readLastLLMResponse = async () => {
     return readFileContent(LLM_RESPONSE_FILE);
 };
 
-export const requestCompleteDiff = async (outputFile: string) => {
+export const requestCompleteDiff = async () => {
     const lastLLMResponse = await readLastLLMResponse();
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, lastLLMResponse);
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, lastLLMResponse);
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, COMPLETE_DIFF_REQUEST);
-    writeEmptyLines(outputFile);
-    return await sendToLLM(readFileContent(outputFile));
+    const llmPrompt = `
+    ${lastLLMResponse}
+    \n\n\n\n\n
+    ${COMPLETE_DIFF_REQUEST}
+    `;
+    const response = await sendToLLM(readFileContent(llmPrompt));
+    implementLLMDiff(response);
 };
 
-export const requestBetterDiff = async (outputFile: string) => {
+export const requestBetterDiff = async () => {
     const lastLLMResponse = await readLastLLMResponse();
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, lastLLMResponse);
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, lastLLMResponse);
-    writeEmptyLines(outputFile);
-    fs.appendFileSync(outputFile, BETTERS_DIFF_REQUEST);
-    writeEmptyLines(outputFile);
-    return await sendToLLM(readFileContent(outputFile));
+    const llmPrompt = `
+    ${lastLLMResponse}
+    \n\n\n\n\n
+    ${BETTERS_DIFF_REQUEST}
+    `;
+    const response = await sendToLLM(readFileContent(llmPrompt));
+    implementLLMDiff(response);
 };
 
 // Function to handle the interaction with the LLM and apply the diff
@@ -100,7 +99,8 @@ export const handleLLMInteraction = async (folderPath: string) => {
     processPrePrompt(folderPath, outputFile);
 
     // Process the folder and its contents
-    processDirectory(folderPath, outputFile);
+    const content = getDirectoryContent(folderPath);
+    fs.appendFileSync(outputFile, content);
 
     // Process the post-prompt
     processPostPrompt(folderPath, outputFile);
@@ -111,10 +111,15 @@ export const handleLLMInteraction = async (folderPath: string) => {
     // Copy the output file to the clipboard
     copyOutputToClipboard(outputFile);
 
+    implementLLMDiff(readFileContent(outputFile));
+};
+
+const implementLLMDiff = async (llmPrompt: string) => {
     let retryCount = 0;
     while (retryCount < 3) {
+        console.log(llmPrompt);
+        const response = await sendToLLM(llmPrompt);
         try {
-            const response = await sendToLLM(readFileContent(outputFile));
             let diff = parseDiff(response);
             retryCount = 0;
 
@@ -137,7 +142,7 @@ export const handleLLMInteraction = async (folderPath: string) => {
 
             if (!answer.isDiffCorrect) {
                 console.log('Sending the prompt again for better diff.');
-                await requestBetterDiff(outputFile);
+                await requestBetterDiff();
             } else {
                 const answer = await prompt({
                     type: 'confirm',
@@ -147,12 +152,16 @@ export const handleLLMInteraction = async (folderPath: string) => {
                 });
                 if (!answer.isDiffComplete) {
                     console.log('Sending the prompt again for complete diff.');
-                    await requestCompleteDiff(outputFile);
+                    await requestCompleteDiff();
                 }
             }
 
         } catch (error) {
             retryCount++;
+            console.log(`
+            Response: \n\n\n\n\n\n
+            ${response}
+            `);
             console.log('Diff parsing failed, retrying...');
             if (retryCount == 3) {
                 console.log('Diff parsing failed 3 times, exiting...');
@@ -190,4 +199,37 @@ export const generateCommitMessages = async () => {
 
     const commitMsg = commitMessages?.find((msg) => msg.commit === answers.action);
     gitCommit(commitMsg.commit, commitMsg.description);
+};
+
+export const suggestThings = async (folderPath: string) => {
+    const content = getDirectoryContent(folderPath);
+    const response = await sendToLLM(`
+        ${content}
+        \n\n\n\n\n\n\n
+        ${SUGGEST_THINGS}
+        `, {
+        responseType: 'application/json'
+    });
+
+    saveLLMResponse(response);
+
+    const suggestions = JSON.parse(response);
+
+    const answers = await prompt([
+        {
+            type: 'list',
+            name: 'action',
+            message: 'Choose the commit message to apply',
+            choices: suggestions?.map((suggestion) => ({
+                name: suggestion,
+                value: suggestion
+            })),
+            default: 'send',
+        }
+    ] as Question[]);
+    implementLLMDiff(`
+        ${content}
+        \n\n\n\n\n\n\n
+        ${answers.action}
+    `);
 };

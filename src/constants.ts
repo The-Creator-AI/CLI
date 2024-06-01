@@ -324,3 +324,4 @@ export const BINARY_EXTENSTIONS = [
     "zipx"
 ];
 export const GENERATE_COMMIT_MSG = `Generate a few good commit messages for the change log below. Ensure to return array of objects with two keys - commit & description`;
+export const SUGGEST_THINGS = `Analyse the code above and suggest me the changes that I could do. Give a list of thigns that can be done in the format string[]`;

@@ -9,7 +9,7 @@ import {
     PRE_PROMPT_FILE
 } from './constants';
 import { isIgnored } from './ignore';
-import { isBinaryFile, writeEmptyLines, appendFileContent, writeRelativePath } from './utils';
+import { isBinaryFile, writeEmptyLines, getCodeWithLineNbr, getRelativePath } from './utils';
 
 // Function to initialize the output file
 export const initializeOutputFile = (folderPath: string): string => {
@@ -55,7 +55,7 @@ export const processPostPrompt = (folderPath: string, outputFile: string): void 
 };
 
 // Function to display and process a single item (file or directory)
-export const processPath = (itemPath: string, outputFile: string): void => {
+export const processPathContent = (itemPath: string) => {
     if (!fs.existsSync(itemPath)) {
         console.error(`Error: Path '${itemPath}' does not exist.`);
         return;
@@ -64,33 +64,42 @@ export const processPath = (itemPath: string, outputFile: string): void => {
     // console.log(`Processing item: ${itemPath}`);
 
     if (fs.lstatSync(itemPath).isDirectory()) {
-        processDirectory(itemPath, outputFile);
+        return getDirectoryContent(itemPath);
     } else {
-        processFile(itemPath, outputFile);
+        return getFilePathAndCode(itemPath);
     }
 };
 
 // Function to recursively process a directory
-export const processDirectory = (dirPath: string, outputFile: string): void => {
-    // console.log(`Traversing directory '${dirPath}'...`);
+export const getDirectoryContent = (dirPath: string) => {
+    let content = ``;
     fs.readdirSync(dirPath).forEach((item) => {
         const fullPath = path.join(dirPath, item);
         if (isIgnored(fullPath)) {
             console.log(`\x1b[31m${fullPath} is ignored\x1b[0m`);
             return;
         }
+        content += '\n\n\n\n\n';
+        content += processPathContent(fullPath);
+        content += '\n\n\n\n\n';
         // console.log(`Processing item: ${fullPath}`);
-        processPath(fullPath, outputFile);
     });
+    return content;
 };
 
 // Function to process a single file
-export const processFile = (filePath: string, outputFile: string): void => {
+export const getFilePathAndCode = (filePath: string) => {
     // console.log(`Processing file '${filePath}'...`);
     const isBinary = isBinaryFile(filePath);
 
     if (!isBinary) {
-        writeRelativePath(filePath, outputFile);
-        appendFileContent(filePath, outputFile);
+        const relativeFilePath = getRelativePath(filePath);
+        const code = getCodeWithLineNbr(filePath);
+        const fileContent = `
+            ${relativeFilePath}
+            ${code}
+            \n\n\n\n\n\n
+        `;
+        return fileContent;
     }
 };

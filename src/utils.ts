@@ -32,19 +32,17 @@ export const isBinaryFile = (filePath: string): boolean => {
 };
 
 // Function to write the relative path of a file to the output file
-export const writeRelativePath = (filePath: string, outputFile: string, suffix: string = ''): void => {
-    const relativePath = path.relative(process.cwd(), filePath);
-    fs.appendFileSync(outputFile, `${relativePath}${suffix}\n`);
+export const getRelativePath = (filePath: string) => {
+    return path.relative(process.cwd(), filePath);
 };
 
 // Function to write the content of a file to the output file
-export const appendFileContent = (filePath: string, outputFile: string): void => {
+export const getCodeWithLineNbr = (filePath: string) => {
     // console.log(`Writing file content to output file...`);                                                                                                                                                                     
     const fileContent = fs.readFileSync(filePath).toString();
     const lines = fileContent.split('\n');
     const numberedLines = lines.map((line, index) => `${index + 1}. ${line}`);
-    fs.appendFileSync(outputFile, numberedLines.join('\n'));
-    writeEmptyLines(outputFile);
+    return numberedLines.join('\n');
 };
 
 
@@ -85,3 +83,18 @@ export const gitCommit = (commitMessage: string, commitDescription: string) => {
         console.error("Error during commit:", error);
     }
 };
+
+// export const logBottom = () => {
+//     const ui = new inquirer.ui.BottomBar();
+
+//     // pipe a Stream to the log zone
+//     // outputStream.pipe(ui.log);
+
+//     // Or simply write output
+//     ui.log.write('something just happened.');
+//     ui.log.write('Almost over, standby!');
+
+//     // During processing, update the bottom bar content to display a loader
+//     // or output a progress bar, etc
+//     ui.updateBottomBar('new bottom bar content');
+// }
