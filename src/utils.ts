@@ -59,6 +59,11 @@ export const getGitDiff = () => {
     return output.toString();
 };
 
+export const resetUnstagedFiles = () => {
+    const output = child_process.execSync(`git restore .`);
+    return output.toString();
+};
+
 export const gitCommit = (commitMessage: string, commitDescription: string) => {
     try {
         // 1. Construct the commit command

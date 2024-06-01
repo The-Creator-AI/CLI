@@ -13,7 +13,8 @@ import { getDirectoryContent } from './llm.js';
 import type { PromptConfig, PromptConfigContext } from './types.js';
 import {
     copyOutputToClipboard,
-    readFileContent
+    readFileContent,
+    resetUnstagedFiles
 } from './utils.js';
 
 // global fetch
@@ -78,6 +79,12 @@ export const readLastLLMResponse = async () => {
 };
 
 export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse: string) => {
+    const { postPrompt } = await inquirer.prompt({
+        type: 'input',
+        name: 'postPrompt',
+        message: 'What should the model be asked to do?',
+        default: COMPLETE_DIFF_REQUEST
+    });
     const newPrompt = `
     ${lastLLMPrompt}
     \n\n\n\n\n
@@ -85,7 +92,7 @@ export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse
     \n\n
     ${lastLLMResponse}
     \n\n\n\n\n
-    ${COMPLETE_DIFF_REQUEST}
+    ${postPrompt}
     `;
     saveLLMPrompt(newPrompt);
     const response = await sendToLLM(newPrompt);
@@ -94,6 +101,12 @@ export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse
 };
 
 export const requestBetterDiff = async (lastLLMPrompt: string, lastLLMResponse: string) => {
+    const { postPrompt } = await inquirer.prompt({
+        type: 'input',
+        name: 'postPrompt',
+        message: 'What should the model be asked to do?',
+        default: BETTERS_DIFF_REQUEST
+    });
     const newPrompt = `
     ${lastLLMPrompt}
     \n\n\n\n\n
@@ -101,7 +114,7 @@ export const requestBetterDiff = async (lastLLMPrompt: string, lastLLMResponse: 
     \n\n
     ${lastLLMResponse}
     \n\n\n\n\n
-    ${BETTERS_DIFF_REQUEST}
+    ${postPrompt}
     `;
     saveLLMPrompt(newPrompt);
     const response = await sendToLLM(newPrompt);
@@ -126,6 +139,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
             });
 
             if (!answer.isDiffCorrect) {
+                resetUnstagedFiles();
                 console.log('Sending the prompt again for better diff.');
                 await requestBetterDiff(llmPrompt, llmResponse);
             } else {
