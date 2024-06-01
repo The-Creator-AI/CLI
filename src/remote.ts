@@ -1,4 +1,5 @@
 import {
+    copyOutputToClipboard,
     getGitDiff,
     gitCommit,
     readFileContent,
@@ -12,6 +13,7 @@ import {
 import * as fs from 'fs';
 import { prompt, Question } from 'inquirer';
 import { applyDiff, parseDiff } from './diff';
+import { initializeOutputFile, processDirectory, processPostPrompt, processPrePrompt } from './llm';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -85,7 +87,30 @@ export const requestBetterDiff = async (outputFile: string) => {
 };
 
 // Function to handle the interaction with the LLM and apply the diff
-export const handleLLMInteraction = async (outputFile: string) => {
+export const handleLLMInteraction = async (folderPath: string) => {
+    // Initialize the output file
+    const outputFile = initializeOutputFile(folderPath);
+    console.log(`Working with folder: ${folderPath}`);
+    if (!fs.existsSync(folderPath)) {
+        console.error(`Error: Path '${folderPath}' does not exist.`);
+        return;
+    }
+
+    // Process the pre-prompt
+    processPrePrompt(folderPath, outputFile);
+
+    // Process the folder and its contents
+    processDirectory(folderPath, outputFile);
+
+    // Process the post-prompt
+    processPostPrompt(folderPath, outputFile);
+
+    // Append IGNORE_LINE_NUMBERS to the output file
+    writeEmptyLines(outputFile);
+
+    // Copy the output file to the clipboard
+    copyOutputToClipboard(outputFile);
+
     let retryCount = 0;
     while (retryCount < 3) {
         try {
@@ -145,21 +170,24 @@ export const generateCommitMessages = async () => {
     `, {
         responseType: 'application/json'
     });
-    const commitMessages = JSON.parse(response)?.changes;
-    
+
+    saveLLMResponse(response);
+
+    const commitMessages = JSON.parse(response);
+
     const answers = await prompt([
         {
-          type: 'list',
-          name: 'action',
-          message: 'Choose the commit message to apply',
-          choices: commitMessages?.map((msg) => ({
-            name: msg.commit,
-            value: msg.commit
-          })),
-          default: 'send',
+            type: 'list',
+            name: 'action',
+            message: 'Choose the commit message to apply',
+            choices: commitMessages?.map((msg) => ({
+                name: msg.commit,
+                value: msg.commit
+            })),
+            default: 'send',
         }
-      ] as Question[]);
-      
+    ] as Question[]);
+
     const commitMsg = commitMessages?.find((msg) => msg.commit === answers.action);
     gitCommit(commitMsg.commit, commitMsg.description);
 };
