@@ -1,6 +1,6 @@
 import * as ParseDiff from 'parse-diff';
 import * as fs from 'fs';
-import * as path from 'path';
+// import * as path from 'path';
 
 export const parseDiff = (llmResponse: string) => {
     // find code with the patterns - ```diff ...code goes here... ```
@@ -25,79 +25,64 @@ export const parseDiff = (llmResponse: string) => {
     return diff;
 };
 
-export const sanitizedDiff = (diff: string) => {
-    const hunks = getDiffHunks(diff);
-    // Adjust line numbers for 'normal' type changes
-    let lineNbrDiffFromOriginalFile = 0;
-    let lineNbrOffsetByChanges = 0;
-    return hunks.map(hunk => {
-        const filePath = hunk.from as string;
-        const content = fs.readFileSync(filePath, 'utf8');
-        const lines = content.split('\n');
-
-        return {
-            ...hunk,
-            chunks: hunk.chunks.map(chunk => {
-                return {
-                    ...chunk,
-                    changes: chunk.changes.map(change => {
-                        console.log(change);
-                        if (change.type === 'normal' && change.content.trim() !== '') {
-                            // Adjust line number based on the actual file content
-                            const actualLineNumber = lines.findIndex(line => line.trim() === change.content.trim()) + 1;
-                            // change.ln1 = actualLineNumber;
-                            lineNbrDiffFromOriginalFile = actualLineNumber - change.ln1;
-                        } else if (change.type === 'add') {
-                            lineNbrOffsetByChanges += 1;
-                        } else if (change.type === 'del') {
-                            lineNbrOffsetByChanges -= 1;
-                        }
-                        if (change['ln1']) {
-                            change['ln1'] += lineNbrDiffFromOriginalFile;
-                        }
-                        if (change['ln2']) {
-                            change['ln2'] += lineNbrDiffFromOriginalFile;
-                        }
-                        const totalLineNbrDiff = lineNbrDiffFromOriginalFile + lineNbrOffsetByChanges;
-                        console.log(totalLineNbrDiff);
-                        return {
-                            ...change,
-                            ln1: change['ln1'] ? change['ln1'] + totalLineNbrDiff : change['ln1'],
-                            ln2: change['ln2'] ? change['ln2'] + totalLineNbrDiff : change['ln2'],
-                            ln: change['ln'] ? change['ln'] + totalLineNbrDiff : change['ln']
-                        };
-                    })
-                };
-            })
-        };
-    });
-};
-
 export const getDiffHunks = (diff: string) => {
     return ParseDiff.default(diff);
 };
 
-export const applyDiff = (diff: string) => {
-    const hunks = sanitizedDiff(diff);
+const findActualLineNbr = (lines: string[], content: string, assumedLineNbr: number) => {
+    const nbrOfLines = lines.length;
+    const RANGE = 3;
+    // look only +-5 lines around the ln2, consider the rest to be empty
+    const linesToSearch = lines.slice(assumedLineNbr - RANGE, assumedLineNbr + RANGE);
+    // push empty lines in to make the linesToSearch array equal to lines
+    [...new Array(assumedLineNbr - RANGE)]
+        .forEach(() => linesToSearch.unshift(''));
+    [...new Array(nbrOfLines - linesToSearch.length)]
+        .forEach(() => linesToSearch.push(''));
+    const actualLineNbr = linesToSearch
+    .findIndex(line => content.includes(line) && line.trim() !== '');
+    return actualLineNbr;
+};
 
-    // Apply the hunks to the files
-    hunks.map(hunk => {
+export const applyDiff = (diff: string) => {
+    const hunks = getDiffHunks(diff);
+    return hunks.forEach(hunk => {
         const filePath = hunk.from as string;
-        const relativePath = path.relative(process.cwd(), filePath);
         const content = fs.readFileSync(filePath, 'utf8');
         const lines = content.split('\n');
 
         hunk.chunks.forEach(chunk => {
-            chunk.changes.forEach(change => {
-                // console.log(change);
-                if (change.type === 'add') {
-                    lines.splice(change.ln - 1, 0, change.content.slice(1));
+            let chunkIdx = -1;
+            for (let i = 0; i < chunk.changes.length; i++) {
+                const change = chunk.changes[i];
+                const actualLineNbr = findActualLineNbr(lines, 
+                    change.type === 'normal' ? change.content : change.content.slice(1),
+                change['ln2'] || change['ln']);
+                if (actualLineNbr >= 0) {
+                    chunkIdx = actualLineNbr - i;
+                    break;
+                }
+            }
+
+            chunk.changes.map(change => {
+                if (change.type === 'normal' && change.content.trim() !== '') {
+                    const actualLineNbr = findActualLineNbr(lines, change.content, change.ln2);
+                    if (actualLineNbr >= 0) {
+                        chunkIdx = actualLineNbr;
+                    }
+                    chunkIdx++;
+                } else if (change.type === 'add') {
+                    lines.splice(chunkIdx, 0, change.content.slice(1));
+                    chunkIdx++;
                 } else if (change.type === 'del') {
-                    lines.splice(change.ln - 1, 1);
+                    const actualLineNbr = findActualLineNbr(lines, change.content, change.ln);
+                    if (actualLineNbr >= 0) {
+                        chunkIdx = actualLineNbr;
+                    }
+                    lines.splice(chunkIdx, 1);
                 }
             })
         })
         fs.writeFileSync(filePath, lines.join('\n'));
-        console.log(`File ${relativePath} updated!`);
-    })
+    });
 };
