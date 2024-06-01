@@ -63,13 +63,16 @@ export const applyDiff = (diff: string) => {
                 change['ln2'] || change['ln']);
                 if (actualLineNbr >= 0) {
                     chunkIdx = actualLineNbr - i;
+                    if (chunkIdx < 0) {
+                        chunkIdx = 0;
+                    }
                     break;
                 }
             }
 
             chunk.changes.map(change => {
                 if (change.type === 'normal' && change.content.trim() !== '') {
-                    const actualLineNbr = findActualLineNbr(lines, change.content, change.ln2);
+                    const actualLineNbr = findActualLineNbr(lines, change.content, chunkIdx);
                     if (actualLineNbr >= 0) {
                         chunkIdx = actualLineNbr;
                     }
@@ -78,7 +81,7 @@ export const applyDiff = (diff: string) => {
                     lines.splice(chunkIdx, 0, change.content.slice(1));
                     chunkIdx++;
                 } else if (change.type === 'del') {
-                    const actualLineNbr = findActualLineNbr(lines, change.content, change.ln);
+                    const actualLineNbr = findActualLineNbr(lines, change.content, chunkIdx);
                     if (actualLineNbr >= 0) {
                         chunkIdx = actualLineNbr;
                     }
