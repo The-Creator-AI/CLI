@@ -122,166 +122,222 @@ describe('isIgnored', () => {
       expect(isIgnored('/test/dir/image.jpg')).toBe(true);
       expect(isIgnored('/test/dir/file.doc')).toBe(true);
     });
-  
+
     it('should ignore files based on .gitignore or ignore.llm patterns from any of the ancestor directories', () => {
       mockFs({
         '/ignore.llm': '*.mx',
         '/test/.gitignore': '*.txt',
         '/test/dir/ignore.llm': '*.md',
         '/test/dir/file.txt': 'Some text',
-        '/test/dir/file.md': '# Markdown',
-        '/test/dir/file.mx': 'Some text',
-        '/test/dir/file.ts': 'console.log("Hello, TypeScript!");'
+        '/test/dir/file.md': 'Some markdown',
+        '/test/dir/file.mx': 'Some mx content',
+        '/test/dir/file.ts': 'console.log("Hello, TypeScript!");',
+        '/test/dir/file.js': 'console.log("Hello, JavaScript!");'
       });
-  
+
       expect(isIgnored('/test/dir/file.txt')).toBe(true);
       expect(isIgnored('/test/dir/file.md')).toBe(true);
       expect(isIgnored('/test/dir/file.mx')).toBe(true);
       expect(isIgnored('/test/dir/file.ts')).toBe(false);
+      expect(isIgnored('/test/dir/file.js')).toBe(false);
     });
 
     it('should ignore files matching default patterns even without ignore.llm', () => {
-    // const DEFAULT_IGNORE = [
-    //     '*.llm', // Always add these patterns
-    //     '.git',
-    //     '.vscode',
-    //     'node_modules',
-    //     'yarn.lock',
-    //     'package-lock.json',
-    //     '*.log'
-    //     ]
       mockFs({
         '/test/dir': {
           'node_modules/some_module/file.js': 'Some JavaScript',
           '.git/config': 'git configuration',
           'ignore.llm': '*.txt',
-          // .vscode directory and its files
           '.vscode': {
             'settings.json': 'settings',
             'extensions.json': 'extensions',
           },
           'yarn.lock': 'yarn lock',
           'package-lock.json': 'package lock',
-          'file.log': 'log message'
+          'file.log': 'log message',
+          'file.llm': 'LLM content',
+          'file.patch': 'Patch file'
         },
       }); 
       expect(isIgnored('/test/dir/node_modules/some_module/file.js')).toBe(true);
       expect(isIgnored('/test/dir/.git/config')).toBe(true);
       expect(isIgnored('/test/dir/ignore.llm')).toBe(true);
       expect(isIgnored('/test/dir/.vscode/settings.json')).toBe(true);
-      expect(isIgnored('/test/dir/.vscode/extensions.json')).toBe(true);
       expect(isIgnored('/test/dir/yarn.lock')).toBe(true);
       expect(isIgnored('/test/dir/package-lock.json')).toBe(true);
       expect(isIgnored('/test/dir/file.log')).toBe(true);
+      expect(isIgnored('/test/dir/file.llm')).toBe(true);
+      expect(isIgnored('/test/dir/file.patch')).toBe(true);
+    });
+    it('should ignore based on complex patterns with wildcards, negation, and directory traversal', () => {
+      mockFs({
+        '/test/dir': {
+          'file.txt': 'Some text',
+          'file.js': 'Some JavaScript',
+          'file.ts': 'TypeScript code',
+          'test/file.test.js': 'Test file',
+          'another/dir/file.md': 'Markdown file',
+          'deeply/nested/dir/file.llm': 'LLM content',
+          'node_modules/some_module/file.js': 'Module file',
+        },
+        '/test/.gitignore': `
+          *.txt
+          !file.txt
+          test/*.test.js
+          another/dir/*.md
+          deeply/nested/dir/*.llm
+        `,
+        '/test/dir/ignore.llm': 'node_modules/*'
+      });
+
+      expect(isIgnored('/test/dir/file.txt')).toBe(false);
+      expect(isIgnored('/test/dir/file.js')).toBe(false);
+      expect(isIgnored('/test/dir/file.ts')).toBe(false);
+      expect(isIgnored('/test/dir/test/file.test.js')).toBe(true);
+      expect(isIgnored('/test/dir/another/dir/file.md')).toBe(true);
+      expect(isIgnored('/test/dir/deeply/nested/dir/file.llm')).toBe(true);
+      expect(isIgnored('/test/dir/node_modules/some_module/file.js')).toBe(true);
+
+      // Test cases for patterns defined in ancestor directories
+      expect(isIgnored('/test/dir/file.js')).toBe(false);
+      expect(isIgnored('/test/dir/another/dir/file.md')).toBe(true);
+      expect(isIgnored('/test/dir/deeply/nested/dir/file.llm')).toBe(true);
     });
 
-        
+    it('should correctly ignore files based on patterns in multiple ignore files across directories', () => {
+      mockFs({
+        '/test/.gitignore': '*.js',
+        '/test/dir/.gitignore': '*.ts',
+        '/test/dir/another/dir/.gitignore': '*.md',
+        '/test/dir/another/dir/ignore.llm': '*.txt',
+        '/test/dir/file.js': 'Some JavaScript',
+        '/test/dir/file.ts': 'TypeScript code',
+        '/test/dir/another/dir/file.md': 'Markdown file',
+        '/test/dir/another/dir/file.txt': 'Text file'
+      });
 
-        it('should ignore based on pattern - *', () => {
-            const ignorePatterns = {
-                '*' : {
-                    files: {
-                        '/test/dir/node_modules/some_module/file.js': true,
-                        '/test/dir/.git/config': true,
-                        '/test/dir/ignore.llm': true,
-                        '/test/dir/settings.json': true,
-                        '/test/settings.txt': true,
-                        '/test/dir/node_modules_dir/some_module/file.js': true,
-                        '/test/dir/some/path/node_modules_dir/file.js': true,
-                        '/test/dir/file.js': true,
-                        '/test/dir/file.test.js': true,
-                        '/test/dir/src/utils.ts': true,
-                        '/test/dir/src/utils.test.ts': true,
-                        '/tmp/file.txt': true,
-                        '/tmp/file.md': true,
-                        '/home/user/Downloads/file.txt': true,
-                        '/home/user/Downloads/file.md': true,
-                        '/test/dir/tests/file.test.js': true,
-                        '/test/dir/test.js': true,
-                        '/test/dir/test.test.js': true,
-                        '/test/node_modules_dir/file.js': true,
-                        '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true,
-                        '/test/dir/src/tests/file.test.js': true,
-                    }
-                },
-                '*.txt': {
-                    files: {
-                        '/test/dir/settings.json': false,
-                        '/test/settings.txt': true
-                    }
-                },
-                'node_modules_dir': {
-                    files: {
-                        '/test/dir/node_modules_dir/some_module/file.js': true,
-                        '/test/dir/some/path/node_modules_dir/file.js': true,
-                    }
-                },
-                '!*.test.js': {
-                    files: {
-                        '/test/dir/file.js': true,
-                        '/test/dir/file.test.js': false
-                    }
-                },
-                '!src/utils.ts': {
-                    files: {
-                        '/test/dir/src/utils.ts': false,
-                        '/test/dir/src/utils.test.ts': true
-                    }
-                },
-                '/tmp/*': {
-                    files: {
-                        '/test/dir/file.js': true,
-                        '/tmp/file.txt': true,
-                        '/tmp/file.md': true
-                    }
-                },
-                '/home/user/Downloads': {
-                    files: {
-                        '/home/user/Downloads/file.txt': true,
-                        '/home/user/Downloads/file.md': true
-                    }
-                },
-                '**/tests': {
-                    files: {
-                        '/test/dir/file.js': true,
-                        '/test/dir/tests/file.test.js': true
-                    }
-                },
-                '**/test*.js': {
-                    files: {
-                        '/test/dir/file.js': true,
-                        '/test/dir/test.js': true,
-                        '/test/dir/test.test.js': true
-                    }
-                },
-                '**/node_modules_dir/**': {
-                    files: {
-                        '/test/node_modules_dir/file.js': true,
-                        '/test/dir/node_modules_dir/some_module/file.js': true,
-                        '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true
-                    }
-                },
-                'src/tests/*.js': {
-                    files: {
-                        '/test/dir/src/tests/file.test.js': true,
-                        '/test/dir/src/utils.test.ts': true
-                    }
-                },
-            };
-            Object.entries(ignorePatterns).forEach(([pattern, ignorePattern]) => {
-                mockFs({
-                    ...Object.entries(ignorePattern.files)
-                        .reduce((acc, [file, _]) => {
-                            acc[file] = `Dummy content`;
-                            return acc;
-                        }, {}),
-                        '.gitignore': pattern
-                });
-                Object.entries(ignorePattern.files).forEach(([file, expected]) => {
-                    expect(file + ' ' + isIgnored(file)).toBe(file + ' ' + expected);
-                });
-                // Restore the mock after each pattern
-                mockFs.restore();
-            });
+      expect(isIgnored('/test/dir/file.js')).toBe(true);
+      expect(isIgnored('/test/dir/file.ts')).toBe(true);
+      expect(isIgnored('/test/dir/another/dir/file.md')).toBe(true);
+      expect(isIgnored('/test/dir/another/dir/file.txt')).toBe(true);
+    });
+
+    it('should handle patterns with double star (**) for directory traversal correctly', () => {
+      mockFs({
+        '/test/dir/another/dir/file.js': 'JavaScript file',
+        '/test/dir/another/dir/file.md': 'Markdown file',
+        '/test/.gitignore': '**/file.js'
+      });
+
+      expect(isIgnored('/test/dir/another/dir/file.js')).toBe(true);
+      expect(isIgnored('/test/dir/another/dir/file.md')).toBe(false);
+    });
+
+    it('should ignore based on pattern - *', () => {
+      const ignorePatterns = {
+        '*': {
+          files: {
+            '/test/dir/node_modules/some_module/file.js': true,
+            '/test/dir/.git/config': true,
+            '/test/dir/ignore.llm': true,
+            '/test/dir/settings.json': true,
+            '/test/settings.txt': true,
+            '/test/dir/node_modules_dir/some_module/file.js': true,
+            '/test/dir/some/path/node_modules_dir/file.js': true,
+            '/test/dir/file.js': true,
+            '/test/dir/file.test.js': true,
+            '/test/dir/src/utils.ts': true,
+            '/test/dir/src/utils.test.ts': true,
+            '/tmp/file.txt': true,
+            '/tmp/file.md': true,
+            '/home/user/Downloads/file.txt': true,
+            '/home/user/Downloads/file.md': true,
+            '/test/dir/tests/file.test.js': true,
+            '/test/dir/test.js': true,
+            '/test/dir/test.test.js': true,
+            '/test/node_modules_dir/file.js': true,
+            '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true,
+            '/test/dir/src/tests/file.test.js': true,
+          }
+        },
+        '*.txt': {
+          files: {
+            '/test/dir/settings.json': false,
+            '/test/settings.txt': true
+          }
+        },
+        'node_modules_dir': {
+          files: {
+            '/test/dir/node_modules_dir/some_module/file.js': true,
+            '/test/dir/some/path/node_modules_dir/file.js': true,
+          }
+        },
+        '!*.test.js': {
+          files: {
+            '/test/dir/file.js': true,
+            '/test/dir/file.test.js': false
+          }
+        },
+        '!src/utils.ts': {
+          files: {
+            '/test/dir/src/utils.ts': false,
+            '/test/dir/src/utils.test.ts': true
+          }
+        },
+        '/tmp/*': {
+          files: {
+            '/test/dir/file.js': true,
+            '/tmp/file.txt': true,
+            '/tmp/file.md': true
+          }
+        },
+        '/home/user/Downloads': {
+          files: {
+            '/home/user/Downloads/file.txt': true,
+            '/home/user/Downloads/file.md': true
+          }
+        },
+        '**/tests': {
+          files: {
+            '/test/dir/file.js': true,
+            '/test/dir/tests/file.test.js': true
+          }
+        },
+        '**/test*.js': {
+          files: {
+            '/test/dir/file.js': true,
+            '/test/dir/test.js': true,
+            '/test/dir/test.test.js': true
+          }
+        },
+        '**/node_modules_dir/**': {
+          files: {
+            '/test/node_modules_dir/file.js': true,
+            '/test/dir/node_modules_dir/some_module/file.js': true,
+            '/test/dir/some/path/some_module/node_modules_dir/another_module/file.js': true
+          }
+        },
+        'src/tests/*.js': {
+          files: {
+            '/test/dir/src/tests/file.test.js': true,
+            '/test/dir/src/utils.test.ts': true
+          }
+        },
+      };
+      Object.entries(ignorePatterns).forEach(([pattern, ignorePattern]) => {
+        mockFs({
+          ...Object.entries(ignorePattern.files)
+            .reduce((acc, [file, _]) => {
+              acc[file] = `Dummy content`;
+              return acc;
+            }, {}),
+          '.gitignore': pattern
         });
+        Object.entries(ignorePattern.files).forEach(([file, expected]) => {
+          expect(file + ' ' + isIgnored(file)).toBe(file + ' ' + expected);
+        });
+        // Restore the mock after each pattern
+        mockFs.restore();
+      });
+    });
   });
