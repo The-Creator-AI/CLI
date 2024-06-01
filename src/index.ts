@@ -9,6 +9,7 @@ import {
   processPrePrompt
 } from './llm';
 import {
+  generateCommitMessages,
   handleLLMInteraction
 } from './remote';
 import {
@@ -26,20 +27,24 @@ const main = async () => {
       default: process.cwd(),
     },
     {
-        type: 'list',
-        name: 'action',
-        message: 'What do you want to do?',
-        choices: [
-            {
-                name: 'Send to LLM',
-                value: 'send',
-            },
-            {
-                name: 'Apply last diff',
-                value: 'apply',
-            },
-        ],
-        default: 'send',
+      type: 'list',
+      name: 'action',
+      message: 'What do you want to do?',
+      choices: [
+        {
+          name: 'Send to LLM',
+          value: 'send',
+        },
+        {
+          name: 'Apply last diff',
+          value: 'apply-last-diff',
+        },
+        {
+          name: 'Generate commit message',
+          value: 'commit-message',
+        },
+      ],
+      default: 'send',
     }
   ] as Question[]);
 
@@ -63,7 +68,7 @@ const main = async () => {
 
   // Process the post-prompt
   processPostPrompt(folderPath, outputFile);
-  
+
   // Append IGNORE_LINE_NUMBERS to the output file
   writeEmptyLines(outputFile);
 
@@ -74,7 +79,7 @@ const main = async () => {
   // Handle LLM interaction, apply diff, and handle validation
   if (action === 'send') {
     await handleLLMInteraction(outputFile);
-  } else {
+  } else if (action === 'apply-last-diff') {
     // Apply diff directly if `--applyLast` flag is provided
     console.log(`Reading diff from ${DIFF_PATCH_FILE}`);
     const diff = fs.readFileSync(DIFF_PATCH_FILE).toString();
@@ -82,6 +87,8 @@ const main = async () => {
     console.log('Applying diff...');
     applyDiff(diff);
     console.log('Diff applied!');
+  } else if (action === 'commit-message') {
+    generateCommitMessages();
   }
 
   return 'Done';

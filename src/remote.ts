@@ -1,14 +1,16 @@
 import {
+    getGitDiff,
+    gitCommit,
     readFileContent,
     writeEmptyLines,
 } from './utils';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
 import {
-    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, DIFF_PATCH_FILE, LLM_RESPONSE_FILE,
+    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
 } from './constants';
 import * as fs from 'fs';
-import { prompt } from 'inquirer';
+import { prompt, Question } from 'inquirer';
 import { applyDiff, parseDiff } from './diff';
 
 // global fetch
@@ -21,7 +23,12 @@ import { applyDiff, parseDiff } from './diff';
 (global as any).Response = (fetch as any).Response;
 
 
-export const sendToLLM = async (outputFile: string) => {
+export const sendToLLM = async (prompt: string, options?: {
+    responseType: 'text/plain' | 'application/json'
+}) => {
+    const {
+        responseType = 'text'
+    } = options || {};
     //  ***** Integrate Gemini API call here *****
     //  1. Get your API key (see [https://cloud.google.com/generative-ai/docs/quickstart](https://cloud.google.com/generative-ai/docs/quickstart))
     //  2. Replace 'YOUR_API_KEY' with your actual key 
@@ -29,14 +36,20 @@ export const sendToLLM = async (outputFile: string) => {
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' }); // Or use 'gemini-1.5-flash' for a more general model 
 
     // Call Gemini API with the content of the output file
-    const outputFileContent = readFileContent(outputFile);
-    const response = await model.generateContent(outputFileContent);
+    const response = await model.generateContent({
+        contents: [{
+            role: 'user',
+            parts: [{
+                text: prompt
+            }]
+        }],
+        generationConfig: {
+            responseMimeType: responseType
+        }
+    });
 
     // Convert the output to a git diff
-    const diff = response.response.text();
-
-    // Return the diff
-    return diff;
+    return response.response.text();
 };
 
 export const saveLLMResponse = async (response: string) => {
@@ -56,7 +69,7 @@ export const requestCompleteDiff = async (outputFile: string) => {
     writeEmptyLines(outputFile);
     fs.appendFileSync(outputFile, COMPLETE_DIFF_REQUEST);
     writeEmptyLines(outputFile);
-    return await sendToLLM(outputFile);
+    return await sendToLLM(readFileContent(outputFile));
 };
 
 export const requestBetterDiff = async (outputFile: string) => {
@@ -68,7 +81,7 @@ export const requestBetterDiff = async (outputFile: string) => {
     writeEmptyLines(outputFile);
     fs.appendFileSync(outputFile, BETTERS_DIFF_REQUEST);
     writeEmptyLines(outputFile);
-    return await sendToLLM(outputFile);
+    return await sendToLLM(readFileContent(outputFile));
 };
 
 // Function to handle the interaction with the LLM and apply the diff
@@ -76,7 +89,7 @@ export const handleLLMInteraction = async (outputFile: string) => {
     let retryCount = 0;
     while (retryCount < 3) {
         try {
-            const response = await sendToLLM(outputFile);
+            const response = await sendToLLM(readFileContent(outputFile));
             let diff = parseDiff(response);
             retryCount = 0;
 
@@ -121,4 +134,32 @@ export const handleLLMInteraction = async (outputFile: string) => {
             }
         }
     }
+};
+
+export const generateCommitMessages = async () => {
+    const gitDiff = getGitDiff();
+    const response = await sendToLLM(`
+        ${GENERATE_COMMIT_MSG}
+        \n\n\n\n\n\n\n
+        ${gitDiff}
+    `, {
+        responseType: 'application/json'
+    });
+    const commitMessages = JSON.parse(response)?.changes;
+    
+    const answers = await prompt([
+        {
+          type: 'list',
+          name: 'action',
+          message: 'Choose the commit message to apply',
+          choices: commitMessages?.map((msg) => ({
+            name: msg.commit,
+            value: msg.commit
+          })),
+          default: 'send',
+        }
+      ] as Question[]);
+      
+    const commitMsg = commitMessages?.find((msg) => msg.commit === answers.action);
+    gitCommit(commitMsg.commit, commitMsg.description);
 };

@@ -323,3 +323,4 @@ export const BINARY_EXTENSTIONS = [
     "zip",
     "zipx"
 ];
+export const GENERATE_COMMIT_MSG = `Generate a few good commit messages for the change log below.`;
