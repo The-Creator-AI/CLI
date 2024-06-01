@@ -2,8 +2,7 @@ import * as child_process from 'child_process'; // Import child_process module
 import * as fs from 'fs';
 import * as path from 'path';
 import {
-    BINARY_EXTENSTIONS,
-    CUSTOM_PROMPTS_FILE
+    BINARY_EXTENSTIONS
 } from './constants.js';
 
 // Function to write empty lines to the output file
@@ -101,17 +100,17 @@ export const gitCommit = (commitMessage: string, commitDescription: string) => {
 //     ui.updateBottomBar('new bottom bar content');
 // }
 
-export const getPreviousCustomPrompts = () => {
+export const getPreviousRecords = (filePath: string) => {
     try {
-        return JSON.parse((fs.readFileSync(CUSTOM_PROMPTS_FILE).toString() || `[]`))
-    } catch(_) {
+        return JSON.parse((fs.readFileSync(filePath).toString() || `[]`))
+    } catch (_) {
         return [];
     }
 };
 
-export const saveNewCustomPrompt = async (prompt: string) => {
-    fs.writeFileSync(CUSTOM_PROMPTS_FILE, JSON.stringify([
-        ...getPreviousCustomPrompts(),
-        prompt
-    ], null, 2));
+export const saveNewRecord = async (filePath: string, record: any) => {
+    fs.writeFileSync(filePath, JSON.stringify([...new Set([
+        ...getPreviousRecords(filePath),
+        record
+    ])], null, 2));
 };

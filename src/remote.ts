@@ -1,16 +1,18 @@
 import {
     copyOutputToClipboard,
     getGitDiff,
-    getPreviousCustomPrompts,
+    getPreviousRecords,
     gitCommit,
     readFileContent,
-    saveNewCustomPrompt,
+    saveNewRecord,
     writeEmptyLines,
 } from './utils.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
 import {
-    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
+    BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, POST_PROMPTS_FILE, DEFAULT_PRE_PROMPT, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
+    OUTPUT_FILE,
+    PRE_PROMPT_FILE,
     SUGGEST_THINGS,
 } from './constants.js';
 import * as fs from 'fs';
@@ -18,6 +20,7 @@ import inquirer from 'inquirer';
 import { applyDiff, parseDiff } from './diff.js';
 import { initializeOutputFile, getDirectoryContent, processPostPrompt, processPrePrompt } from './llm.js';
 import autocomplete from 'inquirer-autocomplete-standalone';
+import editor from '@inquirer/editor';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -56,6 +59,10 @@ export const sendToLLM = async (prompt: string, options?: {
 
     // Convert the output to a git diff
     return response.response.text();
+};
+
+export const saveLLMPrompt = async (response: string) => {
+    fs.writeFileSync(OUTPUT_FILE, response);
 };
 
 export const saveLLMResponse = async (response: string) => {
@@ -120,7 +127,9 @@ export const handleLLMInteraction = async (folderPath: string) => {
 const implementLLMDiff = async (llmPrompt: string) => {
     let retryCount = 0;
     while (retryCount < 3) {
-        console.log(llmPrompt);
+
+        saveLLMPrompt(llmPrompt);
+
         const response = await sendToLLM(llmPrompt);
         try {
             let diff = parseDiff(response);
@@ -238,11 +247,37 @@ export const suggestThings = async (folderPath: string) => {
 };
 
 export const customPrompt = async (folderPath: string) => {
+    const sysInstruction: string = await autocomplete({
+        message: 'Please provide system instructions or choose from the list',
+        source: async (input) => {
+            const prompts = getPreviousRecords(PRE_PROMPT_FILE);
+            const instructions = prompts.filter((prompt) => prompt.includes(input || ''));
+            if (instructions.length === 0) {
+                instructions.push(DEFAULT_PRE_PROMPT);
+            }
+            return [
+                ...(instructions.map((instruction) => ({
+                value: instruction,
+                description: instruction
+            }))),
+            ...(input ? [{ value: input, description: input }] : [])
+        ];
+        }
+    })
+
+    process.env['EDITOR'] = 'code';
+    const sysInstructionEdited = await editor({
+        message: 'Please choose a system instruction',
+        default: sysInstruction as string
+    });
+
+    saveNewRecord(PRE_PROMPT_FILE, sysInstructionEdited);
+
     const content = getDirectoryContent(folderPath);
-    const answer = await autocomplete({
+    const postPrompt: string = await autocomplete({
         message: 'Please provide a custom prompts or choose from the list',
         source: async (input) => {
-            const prompts = getPreviousCustomPrompts();
+            const prompts = getPreviousRecords(POST_PROMPTS_FILE);
             const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
             return [
                 ...(filteredPrompts.map((prompt) => ({
@@ -253,16 +288,18 @@ export const customPrompt = async (folderPath: string) => {
         ];
         }
     })
-    if (!answer) {
+    if (!sysInstruction) {
         console.error(`You didn't provide a valid prompt!`);
         return;
     }
 
-    saveNewCustomPrompt(answer as string);
+    saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
 
     implementLLMDiff(`
+${sysInstruction?.trim()}
+        \n\n\n\n\n\n\n
         ${content}
         \n\n\n\n\n\n\n
-        ${answer}
+${postPrompt?.trim()}
     `);
 };
