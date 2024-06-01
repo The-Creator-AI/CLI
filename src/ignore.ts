@@ -1,8 +1,8 @@
-import * as ignore from 'ignore';
+import ignore from 'ignore';
 import parseGitignore from 'parse-gitignore';
 import fs from 'fs';
 import path from 'path';
-import { isBinaryFile } from './utils';
+import { isBinaryFile } from './utils.js';
 
 const DEFAULT_IGNORE = [
   '*.llm', // Always add these patterns

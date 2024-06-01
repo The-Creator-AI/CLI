@@ -4,17 +4,18 @@ import {
     gitCommit,
     readFileContent,
     writeEmptyLines,
-} from './utils';
+} from './utils.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fetch from 'node-fetch';
 import {
     BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST, DIFF_PATCH_FILE, GENERATE_COMMIT_MSG, LLM_RESPONSE_FILE,
     SUGGEST_THINGS,
-} from './constants';
+} from './constants.js';
 import * as fs from 'fs';
-import { prompt, Question } from 'inquirer';
-import { applyDiff, parseDiff } from './diff';
-import { initializeOutputFile, getDirectoryContent, processPostPrompt, processPrePrompt } from './llm';
+import inquirer from 'inquirer';
+import { applyDiff, parseDiff } from './diff.js';
+import { initializeOutputFile, getDirectoryContent, processPostPrompt, processPrePrompt } from './llm.js';
+import autocomplete from 'inquirer-autocomplete-standalone';
 
 // global fetch
 (global as any).fetch = fetch;
@@ -133,7 +134,7 @@ const implementLLMDiff = async (llmPrompt: string) => {
             applyDiff(diff);
             console.log('Diff applied!');
 
-            const answer = await prompt({
+            const answer = await inquirer.prompt({
                 type: 'confirm',
                 name: 'isDiffCorrect',
                 message: 'Is the diff correct?',
@@ -144,7 +145,7 @@ const implementLLMDiff = async (llmPrompt: string) => {
                 console.log('Sending the prompt again for better diff.');
                 await requestBetterDiff();
             } else {
-                const answer = await prompt({
+                const answer = await inquirer.prompt({
                     type: 'confirm',
                     name: 'isDiffComplete',
                     message: 'Is the diff complete?',
@@ -184,7 +185,7 @@ export const generateCommitMessages = async () => {
 
     const commitMessages = JSON.parse(response);
 
-    const answers = await prompt([
+    const answers = await inquirer.prompt([
         {
             type: 'list',
             name: 'action',
@@ -195,7 +196,7 @@ export const generateCommitMessages = async () => {
             })),
             default: 'send',
         }
-    ] as Question[]);
+    ] as inquirer.Question[]);
 
     const commitMsg = commitMessages?.find((msg) => msg.commit === answers.action);
     gitCommit(commitMsg.commit, commitMsg.description);
@@ -215,7 +216,7 @@ export const suggestThings = async (folderPath: string) => {
 
     const suggestions = JSON.parse(response);
 
-    const answers = await prompt([
+    const answers = await inquirer.prompt([
         {
             type: 'list',
             name: 'action',
@@ -226,7 +227,7 @@ export const suggestThings = async (folderPath: string) => {
             })),
             default: 'send',
         }
-    ] as Question[]);
+    ] as inquirer.Question[]);
     implementLLMDiff(`
         ${content}
         \n\n\n\n\n\n\n
@@ -236,15 +237,18 @@ export const suggestThings = async (folderPath: string) => {
 
 export const customPrompt = async (folderPath: string) => {
     const content = getDirectoryContent(folderPath);
-    const answer = await prompt({
-        type: 'input',
-        name: 'input',
-        message: 'Please provide a custom prompts.',
-        default: true
+    const answer = await autocomplete({
+        message: 'Please provide a custom prompts or choose from the list',
+        source: async (input) => {
+            return [{
+                value: input,
+                description: input
+            }];
+        }
     });
     implementLLMDiff(`
         ${content}
         \n\n\n\n\n\n\n
-        ${answer.input}
+        ${answer}
     `);
 };

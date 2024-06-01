@@ -7,9 +7,9 @@ import {
     OUTPUT_FILE,
     POST_PROMPT_FILE,
     PRE_PROMPT_FILE
-} from './constants';
-import { isIgnored } from './ignore';
-import { isBinaryFile, writeEmptyLines, getCodeWithLineNbr, getRelativePath } from './utils';
+} from './constants.js';
+import { isIgnored } from './ignore.js';
+import { isBinaryFile, writeEmptyLines, getCodeWithLineNbr, getRelativePath } from './utils.js';
 
 // Function to initialize the output file
 export const initializeOutputFile = (folderPath: string): string => {

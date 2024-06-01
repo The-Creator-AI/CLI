@@ -2,10 +2,10 @@
 {
     "compilerOptions": {
         "outDir": "dist", // Output directory for compiled JavaScript
-        "module": "commonjs",
+        "module": "NodeNext",
         "target": "es2020", // Or a lower version if needed for compatibility
         "sourceMap": true, // Generate source maps for debugging
-        "moduleResolution": "node",
+        "moduleResolution": "NodeNext",
         "types": ["node", "jest"],
         "resolveJsonModule": true, // Enable JSON module resolution
         "esModuleInterop": true, // Enable ES module interop

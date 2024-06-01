@@ -1,17 +1,17 @@
 import * as fs from 'fs';
-import { prompt, Question } from 'inquirer';
-import { DIFF_PATCH_FILE } from './constants';
-import { applyDiff } from './diff';
+import inquirer from 'inquirer';
+import { DIFF_PATCH_FILE } from './constants.js';
+import { applyDiff } from './diff.js';
 import {
   customPrompt,
   generateCommitMessages,
   handleLLMInteraction,
   suggestThings
-} from './remote';
+} from './remote.js';
 
 // Function to handle the main execution flow
 const main = async () => {
-  const answers = await prompt([
+  const answers = await inquirer.prompt([
     {
       type: 'input',
       name: 'folderPath',
@@ -46,7 +46,7 @@ const main = async () => {
       ],
       default: 'send',
     }
-  ] as Question[]);
+  ] as inquirer.Question[]);
 
   const folderPath = answers.folderPath;
   const action = answers.action;

@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
     BINARY_EXTENSTIONS
-} from './constants';
+} from './constants.js';
 
 // Function to write empty lines to the output file
 export const writeEmptyLines = (outputFile: string): void => {
