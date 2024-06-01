@@ -4,7 +4,7 @@ import * as fs from 'fs';
 
 export const parseCode = (llmResponse: string, type: 'diff' | 'json') => {
     const codeStart = llmResponse.indexOf('```' + type); if (codeStart < 0) {
-        console.error('No ```'+ type + '``` found in the response');
+        console.error('No ```' + type + '``` found in the response');
         return llmResponse;
     }
     // find the last ```
@@ -31,9 +31,29 @@ export const getDiffHunks = (diff: string) => {
 };
 
 const findActualLineNbr = (lines: string[], content: string, assumedLineNbr: number) => {
+    const delimiters = {
+        '(': ')',
+        '[': ']',
+        '{': '}',
+        '<': '>',
+        '"': "'",
+        "'": "'",
+        '`': '`',
+        '#': '*',
+        '/': '\\',
+        '_': ',',
+        '-': '=',
+        ':': ';',
+        '?': '!',
+    };
+
+    const regExStr = `^[\\${Object.keys(delimiters).join('\\')}${Object.values(delimiters).join('\\')}\\s]+$`;
+    if (new RegExp(regExStr).test(content)) {
+        return -1;
+    }
     const nbrOfLines = lines.length;
-    const RANGE = 3;
-    // look only +-5 lines around the ln2, consider the rest to be empty
+    const RANGE = 9;
+    // look only +-RANGE lines around the ln2, consider the rest to be empty
     let linesToSearch = lines.slice(assumedLineNbr - RANGE, assumedLineNbr + RANGE);
     try {
         // push empty lines in to make the linesToSearch array equal to lines
@@ -59,9 +79,9 @@ export const applyDiff = (diff: string) => {
             let chunkIdx = -1;
             for (let i = 0; i < chunk.changes.length; i++) {
                 const change = chunk.changes[i];
-                const actualLineNbr = findActualLineNbr(lines, 
+                const actualLineNbr = findActualLineNbr(lines,
                     change.type === 'normal' ? change.content : change.content.slice(1),
-                change['ln2'] || change['ln']);
+                    change['ln2'] || change['ln']);
                 if (actualLineNbr >= 0) {
                     chunkIdx = actualLineNbr - i;
                     if (chunkIdx < 0) {
