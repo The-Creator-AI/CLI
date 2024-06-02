@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
-import fetch from 'node-fetch';
+// import fetch from 'node-fetch';
 import * as openai from "openai";
 
 import {
@@ -20,72 +20,121 @@ import {
     resetUnstagedFiles
 } from './utils.js';
 
-// global fetch
-(global as any).fetch = fetch;
-// global.Headers = fetch.Headers;
-(global as any).Headers = (fetch as any).Headers;
-// global.Request = fetch.Request;
-(global as any).Request = (fetch as any).Request;
-// global.Response = fetch.Response;
-(global as any).Response = (fetch as any).Response;
+// // global fetch
+// (global as any).fetch = fetch;
+// // global.Headers = fetch.Headers;
+// (global as any).Headers = (fetch as any).Headers;
+// // global.Request = fetch.Request;
+// (global as any).Request = (fetch as any).Request;
+// // global.Response = fetch.Response;
+// (global as any).Response = (fetch as any).Response;
 
 const getApiKey = () => {
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const openaiApiKey = process.env.OPENAI_API_KEY;
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    const openaiApiKey = process.env.OPENAI_API_KEY;
 
-  if (geminiApiKey && openaiApiKey) {
-    console.warn("Both GEMINI_API_KEY and OPENAI_API_KEY are set. Using GEMINI_API_KEY.");
-  }
+    if (geminiApiKey && openaiApiKey) {
+        console.warn("Both GEMINI_API_KEY and OPENAI_API_KEY are set. Using GEMINI_API_KEY.");
+    }
 
-  if (geminiApiKey) {
-    return { type: 'gemini', apiKey: geminiApiKey };
-  } else if (openaiApiKey) {
-    return { type: 'openai', apiKey: openaiApiKey };
-  } else {
-    throw new Error('Please set either GEMINI_API_KEY or OPENAI_API_KEY environment variable.');
-  }
+    if (geminiApiKey) {
+        return { type: 'gemini', apiKey: geminiApiKey };
+    } else if (openaiApiKey) {
+        return { type: 'openai', apiKey: openaiApiKey };
+    } else {
+        throw new Error('Please set either GEMINI_API_KEY or OPENAI_API_KEY environment variable.');
+    }
 }
 
 export const sendToLLM = async (prompt: string, options?: {
-  responseType: 'text/plain' | 'application/json'
+    responseType: 'text/plain' | 'application/json'
 }) => {
-  const { responseType = 'text/plain' } = options || {};
-  const { type, apiKey } = getApiKey();
+    const { responseType = 'text/plain' } = options || {};
+    const { type, apiKey } = getApiKey();
 
-  if (type === 'gemini') {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const GEMINI_MODELS = (model: 'gemini-1.5-flash-latest' |
-      'models/gemini-1.5-pro-latest' |
-      'models/gemini-1.0' |
-      'models/gemini-1.0-pro' |
-      'models/gemini-0.1'
-    ) => model;
+    if (type === 'gemini') {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const GEMINI_MODELS = (model: 'gemini-1.5-flash-latest' |
+            'models/gemini-1.5-pro-latest' |
+            'models/gemini-1.0' |
+            'models/gemini-1.0-pro' |
+            'models/gemini-0.1'
+        ) => model;
 
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODELS('models/gemini-1.5-pro-latest') });
-    const response = await model.generateContent({
-      contents: [{
-        role: 'user',
-        parts: [{
-          text: prompt
-        }],
-      }],
-      generationConfig: {
-        responseMimeType: responseType
-      }
-    });
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODELS('models/gemini-1.5-pro-latest') });
+        const response = await model.generateContent({
+            contents: [{
+                role: 'user',
+                parts: [{
+                    text: prompt
+                }],
+            }],
+            generationConfig: {
+                responseMimeType: responseType
+            }
+        });
 
-    return response.response.text();
-  } else {
-      const model = new openai.OpenAI({
-          apiKey: apiKey,
-      });
-    const response = await model.completions.create({
-      model: "gpt-3.5-turbo",
-      prompt: prompt,
-    });
-    return response.choices[0].text || '';
-  }
+        return response.response.text();
+    } else {
+        const model = new openai.OpenAI({
+            apiKey: apiKey,
+        });
+        const response = await model.completions.create({
+            model: "gpt-3.5-turbo",
+            prompt: prompt,
+        });
+        return response.choices[0].text || '';
+    }
 };
+
+export const sendToLLMStream = async (prompt: string,  options?: {
+    responseType: 'text/plain' | 'application/json'
+}) => {
+    const { responseType = 'text/plain' } = options || {};
+    const { type, apiKey } = getApiKey();
+
+    if (type === 'gemini') {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const GEMINI_MODELS = (model: 'gemini-1.5-flash-latest' |
+            'models/gemini-1.5-pro-latest' |
+            'models/gemini-1.0' |
+            'models/gemini-1.0-pro' |
+            'models/gemini-0.1'
+        ) => model;
+
+        const model = genAI.getGenerativeModel({ model: GEMINI_MODELS('models/gemini-1.5-pro-latest') });
+        const response = await model.generateContentStream({
+            contents: [{
+                role: 'user',
+                parts: [{
+                    text: prompt
+                }],
+            }],
+            generationConfig: {
+                responseMimeType: responseType
+            }
+        });
+        let responseText = '';
+
+        for await (const chunk of response.stream) {
+            responseText += chunk.text()
+            console.log(responseText);
+        }
+
+        return responseText;
+
+    } else {
+        const model = new openai.OpenAI({
+            apiKey: apiKey,
+        });
+        const response = await model.completions.create({
+            model: "gpt-3.5-turbo",
+            prompt: prompt,
+        });
+        return response.choices[0].text || '';
+    }
+};
+
 
 export const saveLLMPrompt = async (response: string) => {
     fs.writeFileSync(OUTPUT_FILE, response);
@@ -129,7 +178,7 @@ export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse
     ${postPrompt}
     `;
     saveLLMPrompt(newPrompt);
-    const response = await sendToLLM(newPrompt);
+    const response = await sendToLLMStream(newPrompt);
     saveLLMResponse(response);
     applyCodeDiff(newPrompt, response);
 };
@@ -151,30 +200,30 @@ export const requestBetterDiff = async (lastLLMPrompt: string, lastLLMResponse: 
     ${postPrompt}
     `;
     saveLLMPrompt(newPrompt);
-    const response = await sendToLLM(newPrompt);
+    const response = await sendToLLMStream(newPrompt);
     saveLLMResponse(response);
     applyCodeDiff(newPrompt, response);
 };
 
 const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
-        try {
-            let diff = parseCode(llmResponse, 'diff');
-            saveCodeBlock(diff);
+    try {
+        let diff = parseCode(llmResponse, 'diff');
+        saveCodeBlock(diff);
 
-            openPatchFile();
+        openPatchFile();
 
-            console.log('Appllying diff...');
-            applyDiff(diff);
-            console.log('Diff applied!');
+        console.log('Appllying diff...');
+        applyDiff(diff);
+        console.log('Diff applied!');
 
-            const answer = await inquirer.prompt({
-                type: 'confirm',
-                name: 'isDiffCorrect',
-                message: 'Is the diff correct?',
-                default: true
-            });
+        const answer = await inquirer.prompt({
+            type: 'confirm',
+            name: 'isDiffCorrect',
+            message: 'Is the diff correct?',
+            default: true
+        });
 
-            if (!answer.isDiffCorrect) {
+        if (!answer.isDiffCorrect) {
             const { diffAction } = await inquirer.prompt({
                 type: 'list',
                 name: 'diffAction',
@@ -197,27 +246,27 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
                 applyDiff(diff);
                 console.log('Diff reapplied!');
             } else if (diffAction === 'resend') {
-                    resetUnstagedFiles();
-                    console.log('Sending the prompt again for better diff.');
-                    await requestBetterDiff(llmPrompt, llmResponse);
-                }
-            } else {
-                const answer = await inquirer.prompt({
-                    type: 'confirm',
-                    name: 'isDiffComplete',
-                    message: 'Is the diff complete?',
-                    default: true
-                });
-                if (!answer.isDiffComplete) {
-                    console.log('Sending the prompt again for complete diff.');
-                    await requestCompleteDiff(llmPrompt, llmResponse);
-                }
+                resetUnstagedFiles();
+                console.log('Sending the prompt again for better diff.');
+                await requestBetterDiff(llmPrompt, llmResponse);
             }
-
-        } catch (error) {
-            console.log('Diff parsing failed, retrying...');
-            await requestBetterDiff(llmPrompt, llmResponse);
+        } else {
+            const answer = await inquirer.prompt({
+                type: 'confirm',
+                name: 'isDiffComplete',
+                message: 'Is the diff complete?',
+                default: true
+            });
+            if (!answer.isDiffComplete) {
+                console.log('Sending the prompt again for complete diff.');
+                await requestCompleteDiff(llmPrompt, llmResponse);
+            }
         }
+
+    } catch (error) {
+        console.log('Diff parsing failed, retrying...');
+        await requestBetterDiff(llmPrompt, llmResponse);
+    }
 };
 
 // this function will take a prompt config object
@@ -239,7 +288,7 @@ export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptCon
             console.log(message);
         },
         applyCodeDiff: async (context) => {
-            applyCodeDiff(context.prompt,context.response);
+            applyCodeDiff(context.prompt, context.response);
         },
         runPrompt,
         prompt: '',
@@ -267,7 +316,7 @@ export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptCon
     saveLLMPrompt(context.prompt);
 
     // Handle response
-    context.response = await sendToLLM(context.prompt, {
+    context.response = await sendToLLMStream(context.prompt, {
         responseType: promptConfig.responseType,
     });
     saveLLMResponse(context.response);
