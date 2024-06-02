@@ -146,9 +146,32 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
             });
 
             if (!answer.isDiffCorrect) {
-                resetUnstagedFiles();
-                console.log('Sending the prompt again for better diff.');
-                await requestBetterDiff(llmPrompt, llmResponse);
+            const { diffAction } = await inquirer.prompt({
+                type: 'list',
+                name: 'diffAction',
+                message: 'What do you want to do with the diff?',
+                choices: [
+                    {
+                        name: 'Reapply the diff',
+                        value: 'reapply',
+                    },
+                    {
+                        name: 'Resend the prompt',
+                        value: 'resend',
+                    },
+                ],
+                default: 'resend',
+            });
+
+            if (diffAction === 'reapply') {
+                console.log('Reapplying diff...');
+                applyDiff(diff);
+                console.log('Diff reapplied!');
+            } else if (diffAction === 'resend') {
+                    resetUnstagedFiles();
+                    console.log('Sending the prompt again for better diff.');
+                    await requestBetterDiff(llmPrompt, llmResponse);
+                }
             } else {
                 const answer = await inquirer.prompt({
                     type: 'confirm',

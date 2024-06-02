@@ -139,9 +139,10 @@ export const promptConfigs = {
                     source: async (input) => {
                         const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
                         return [
-                            { value: 'Edit in file...', description: 'Edit in file...' },
+                            ...(input ? [] : [{ value: 'Edit in file...', description: 'Edit in file...' }]),
                             ...(filteredPrompts.map((prompt) => ({
-                                value: prompt,
+                                     value: prompt, 
+                                     name: prompt,
                                 description: prompt.slice(0, 100)
                             })) || []),
                             ...(input ? [{ value: input, description: input }] : [])
