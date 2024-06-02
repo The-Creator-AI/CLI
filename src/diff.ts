@@ -3,27 +3,21 @@ import * as fs from 'fs';
 // import * as path from 'path';
 
 export const parseCode = (llmResponse: string, type: 'diff' | 'json') => {
-    const codeStart = llmResponse.indexOf('```' + type); if (codeStart < 0) {
+    if (!llmResponse.includes('````${type}')) {
         console.error('No ```' + type + '``` found in the response');
         return llmResponse;
     }
-    // find the last ```
-    let codeEnd = llmResponse.lastIndexOf('```');
+
+    const codeStart = llmResponse.indexOf('```${type}');
+    const codeEnd = llmResponse.lastIndexOf('```');
+
     if (codeEnd < 0) {
         console.error('No ``` found in the response');
         return llmResponse;
     }
-    codeEnd -= 1;
 
-    let code = llmResponse.substring(codeStart + 8, codeEnd);
-
-    // if each line has line number + dot + space
-    // example:
-    // 10. This is a line
-    // 11. This is another line
-    // Then remove those extra characters
-    code = code.replace(/([+-\s*])\d+\s*[\.|]\s/g, '$1');
-    return code.trim();
+    const code = llmResponse.substring(codeStart + type.length + 3, codeEnd).trim();
+    return code;
 };
 
 export const getDiffHunks = (diff: string) => {
