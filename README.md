@@ -1,5 +1,7 @@
-## Intro
-This script creates a single prompt with all the code from the repo.
+## LLM Code Assistant
+
+This is a simple script that uses a large language model (LLM) to help you make code changes to your project.
+The script takes a code diff as input and uses the LLM to help you apply the diff, suggest improvements, or generate commit messages.
 
 ## To use:
 1. Install the Script Globally:  
