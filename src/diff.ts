@@ -3,17 +3,19 @@ import * as fs from 'fs';
 // import * as path from 'path';
 
 export const parseCode = (llmResponse: string, type: 'diff' | 'json') => {
-    if (!llmResponse.includes('````${type}')) {
-        console.error('No ```' + type + '``` found in the response');
+    const START_SLUG = `\`\`\`${type}`;
+    const END_SLUG = `\`\`\``;
+    if (!llmResponse.includes(START_SLUG)) {
+        console.error('No ' + START_SLUG + '``` found in the response');
         return llmResponse;
     }
 
-    const codeStart = llmResponse.indexOf('```${type}');
-    const codeEnd = llmResponse.lastIndexOf('```');
+    const codeStart = llmResponse.indexOf(START_SLUG);
+    let codeEnd = llmResponse.lastIndexOf(END_SLUG);
 
     if (codeEnd < 0) {
         console.error('No ``` found in the response');
-        return llmResponse;
+        codeEnd = llmResponse.length;
     }
 
     const code = llmResponse.substring(codeStart + type.length + 3, codeEnd).trim();

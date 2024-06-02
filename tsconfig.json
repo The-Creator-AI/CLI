@@ -17,11 +17,14 @@
         "noUnusedParameters": true, // Warn about unused parameters
         "declaration": true, // Generate declaration files (.d.ts)
         "outDir": "dist", // Directory to output compiled files
-        "rootDir": "src" // Root directory of source files
+        "rootDir": "src", // Root directory of source files
+        "skipLibCheck": true
     },
     "include": [
         "src/**/*.ts"
     ],
     "exclude": [
+        "node_modules",
+        "dist"
     ]
 }

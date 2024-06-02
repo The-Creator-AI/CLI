@@ -13,6 +13,7 @@ import { getDirectoryContent } from './llm.js';
 import type { PromptConfig, PromptConfigContext } from './types.js';
 import {
     copyOutputToClipboard,
+    openFile,
     readFileContent,
     resetUnstagedFiles
 } from './utils.js';
@@ -74,6 +75,10 @@ export const readLastCodeBlock = () => {
     return readFileContent(DIFF_PATCH_FILE).toString();
 };
 
+export const openPatchFile = async () => {
+    openFile(DIFF_PATCH_FILE);
+};
+
 export const readLastLLMResponse = async () => {
     return readFileContent(LLM_RESPONSE_FILE);
 };
@@ -126,6 +131,8 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
         try {
             let diff = parseCode(llmResponse, 'diff');
             saveCodeBlock(diff);
+
+            openPatchFile();
 
             console.log('Appllying diff...');
             applyDiff(diff);

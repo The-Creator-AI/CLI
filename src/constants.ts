@@ -14,43 +14,68 @@ Here's what I propose:**
 
 Describe the change: Briefly explain what you want to achieve with the code modification.
 Desired outcome: Describe the expected behavior after the change.
+
 Once you understand my goals, you can provide the modified code in the git diff format.
+
 Make sure that the git diff you provide contains all the files that are affected by the changes.
-To help you with git diff, I have added line numbers to the code.
+
+You'll first briefly list down the files/functions/other-code-parts you'll change,
+ and then provide the diff.
 
 Example:
-You will see the code as -
-\`\`\`
-1. #include <stdio.h>
-2. #include <stdlib.h>
-3. #include <string.h>
-4. 
-5. int main() {
-6.     printf("Hello, World!\n");
-7.     return 0;
-8. }
-\`\`\`
-When you return git diff, you will give the following output:
+## main.c
+
+* Added includes for <stdlib.h> and "util.h":
+  This allows the main program to use the standard library and the utility functions declared in util.h.
+* Modified the main function: Instead of directly printing "Hello, World!", the main function now calls the print_message function defined in util.c, and then prints "Hello, World!".
+
+## util.c
+* Updated the print_message function: The message printed by this function was changed from "This is a utility message." to "This is an updated utility message.".
+* Added a new function another_utility_function: This new function prints "Another utility function." when called. It was added to expand the utility functions available in the program.
+
+## util.h
+* Declared the new function another_utility_function: A new function declaration was added to the header file to make the another_utility_function available for use in other files that include this header.
+
+
+\`\`\`diff
 --- a/main.c
 +++ b/main.c
-@@ -1,5 +1,5 @@
-- #include <stdio.h>
-+ #include <stdio.h>
-+ #include <stdlib.h>
-+ #include <string.h>
+@@ -1,5 +1,6 @@
+ #include <stdio.h>
++#include <stdlib.h>
++#include "util.h"
  
-- int main() {
-+ int main() {
-     printf("Hello, World!\n");
+ int main() {
+-    printf("Hello, World!\n");
++    print_message();
++    printf("Hello, World!\n");
      return 0;
  }
 
+--- a/util.c
++++ b/util.c
+@@ -1,5 +1,9 @@
+ #include "util.h"
+ 
+ void print_message() {
+-    printf("This is a utility message.\n");
++    printf("This is an updated utility message.\n");
++}
++
++void another_utility_function() {
++    printf("Another utility function.\n");
+ }
 
-
-I hope that helps.
-
-
-This approach will allow us to work more efficiently and ensure we're on the same page.
+--- a/util.h
++++ b/util.h
+@@ -2,5 +2,6 @@
+ #define UTIL_H
+ 
+ void print_message();
++void another_utility_function();
+ 
+ #endif // UTIL_H
+ \`\`\`
 `;
 export const TECH_SPEC_PROMPT = `I'm planning to make changes to my codebase, but before I modify any code, I'd like to update my documentation to reflect these changes.
 

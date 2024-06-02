@@ -8,13 +8,14 @@ import {
 import { promptConfigs } from './prompt-configs.js';
 
 const main = async () => {
-  const { folderPath } = await inquirer.prompt({
-    type: 'input',
-    name: 'folderPath',
-    message: 'Enter the path to the folder containing your project:',
-    default: process.cwd(),
-  });
+  // const { folderPath } = await inquirer.prompt({
+  //   type: 'input',
+  //   name: 'folderPath',
+  //   message: 'Enter the path to the folder containing your project:',
+  //   default: process.cwd(),
+  // });
 
+  const folderPath = process.cwd();
   console.log(`Running prompts in ${folderPath}`);
 
   const { action } = await inquirer.prompt(

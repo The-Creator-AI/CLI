@@ -4,6 +4,7 @@ import {
     DEFAULT_PRE_PROMPT,
     GENERATE_COMMIT_MSG,
     POST_PROMPTS_FILE,
+    POST_PROMPT_FILE,
     SUGGEST_THINGS,
     TECH_SPEC_PROMPT
 } from './constants.js';
@@ -12,10 +13,16 @@ import {
     getGitDiff,
     getPreviousRecords,
     gitCommit,
+    openFile,
+    readFileContent,
     saveNewRecord
 } from './utils.js';
 import { parseCode } from './diff.js';
 import * as child_process from 'child_process';
+import PressToContinuePrompt, { KeyDescriptor } from 'inquirer-press-to-continue';
+import * as fs from 'fs';
+import inquirer from 'inquirer';
+inquirer.registerPrompt('press-to-continue', PressToContinuePrompt);
 
 
 export const promptConfigs = {
@@ -126,20 +133,35 @@ export const promptConfigs = {
                 return context.codeContent;
             },
             postPrompt: async () => {
-                const postPrompt: string = await autocomplete({
+                const prompts = getPreviousRecords(POST_PROMPTS_FILE);
+                let postPrompt: string = await autocomplete({
                     message: 'What changes would you like to make to the code?',
                     source: async (input) => {
-                        const prompts = getPreviousRecords(POST_PROMPTS_FILE);
                         const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
                         return [
+                            { value: 'Edit in file...', description: 'Edit in file...' },
                             ...(filteredPrompts.map((prompt) => ({
                                 value: prompt,
-                                description: prompt
+                                description: prompt.slice(0, 100)
                             })) || []),
                             ...(input ? [{ value: input, description: input }] : [])
                         ];
                     }
                 });
+                if (postPrompt === 'Edit in file...') {
+                    console.log('Please put in your prompt in the following file: ', POST_PROMPT_FILE);
+                    if (prompts?.length > 0) {
+                        fs.writeFileSync(POST_PROMPT_FILE, prompts[0]);
+                    }
+                    openFile(POST_PROMPT_FILE);
+                    const { key: _ } = await inquirer.prompt<{ key: KeyDescriptor }>({
+                        name: 'key',
+                        type: 'press-to-continue',
+                        anyKey: true,
+                        pressToContinueMessage: 'Press a key to continue...',
+                    });
+                    postPrompt = readFileContent(POST_PROMPT_FILE);
+                };
                 saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
                 return postPrompt.trim();
             },

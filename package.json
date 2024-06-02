@@ -28,6 +28,7 @@
     "ignore": "^5.3.1",
     "inquirer": "^8.2.6",
     "inquirer-autocomplete-standalone": "^0.8.1",
+    "inquirer-press-to-continue": "^1.2.0",
     "node-fetch": "^2.6.6",
     "parse-diff": "^0.11.1",
     "parse-gitignore": "^2.0.0"

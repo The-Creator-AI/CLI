@@ -117,3 +117,15 @@ export const saveNewRecord = async (filePath: string, record: any) => {
         ...getPreviousRecords(filePath),
     ])], null, 2));
 };
+
+export const openFile = (filePath: string, editor: 'code' = 'code') => {
+    try {
+        if (editor === 'code') {
+            child_process.execSync(`code ${filePath}`);
+            return;
+        }
+        child_process.execSync(`open ${filePath}`);
+    } catch (error) {
+        console.error("Error opening file:", error);
+    }
+};
