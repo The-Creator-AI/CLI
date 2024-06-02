@@ -30,6 +30,7 @@
     "inquirer-autocomplete-standalone": "^0.8.1",
     "inquirer-press-to-continue": "^1.2.0",
     "node-fetch": "^2.6.6",
+    "openai": "^4.47.3",
     "parse-diff": "^0.11.1",
     "parse-gitignore": "^2.0.0"
   }

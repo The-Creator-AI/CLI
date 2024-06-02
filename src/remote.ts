@@ -2,6 +2,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
 import fetch from 'node-fetch';
+import * as openai from "openai";
+
 import {
     BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST,
     DIFF_PATCH_FILE,
@@ -27,35 +29,62 @@ import {
 // global.Response = fetch.Response;
 (global as any).Response = (fetch as any).Response;
 
+const getApiKey = () => {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  if (geminiApiKey && openaiApiKey) {
+    console.warn("Both GEMINI_API_KEY and OPENAI_API_KEY are set. Using GEMINI_API_KEY.");
+  }
+
+  if (geminiApiKey) {
+    return { type: 'gemini', apiKey: geminiApiKey };
+  } else if (openaiApiKey) {
+    return { type: 'openai', apiKey: openaiApiKey };
+  } else {
+    throw new Error('Please set either GEMINI_API_KEY or OPENAI_API_KEY environment variable.');
+  }
+}
 
 export const sendToLLM = async (prompt: string, options?: {
-    responseType: 'text/plain' | 'application/json'
+  responseType: 'text/plain' | 'application/json'
 }) => {
-    const { responseType = 'text/plain' } = options || {};
+  const { responseType = 'text/plain' } = options || {};
+  const { type, apiKey } = getApiKey();
 
-    // Get your API key from environment variable
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw new Error('Please set the GEMINI_API_KEY environment variable.');
-    }
-
-    // Initialize Gemini client and get the model
+  if (type === 'gemini') {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const GEMINI_MODELS = (model: 'gemini-1.5-flash-latest' |
+      'models/gemini-1.5-pro-latest' |
+      'models/gemini-1.0' |
+      'models/gemini-1.0-pro' |
+      'models/gemini-0.1'
+    ) => model;
+
+    const model = genAI.getGenerativeModel({ model: GEMINI_MODELS('models/gemini-1.5-pro-latest') });
     const response = await model.generateContent({
-        contents: [{
-            role: 'user',
-            parts: [{
-                text: prompt
-            }],
+      contents: [{
+        role: 'user',
+        parts: [{
+          text: prompt
         }],
-        generationConfig: {
-            responseMimeType: responseType
-        }
+      }],
+      generationConfig: {
+        responseMimeType: responseType
+      }
     });
 
-    // Convert the output to a git diff
     return response.response.text();
+  } else {
+      const model = new openai.OpenAI({
+          apiKey: apiKey,
+      });
+    const response = await model.completions.create({
+      model: "gpt-3.5-turbo",
+      prompt: prompt,
+    });
+    return response.choices[0].text || '';
+  }
 };
 
 export const saveLLMPrompt = async (response: string) => {

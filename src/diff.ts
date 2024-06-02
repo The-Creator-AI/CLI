@@ -18,7 +18,9 @@ export const parseCode = (llmResponse: string, type: 'diff' | 'json') => {
         codeEnd = llmResponse.length;
     }
 
-    const code = llmResponse.substring(codeStart + type.length + 3, codeEnd).trim();
+    const code = llmResponse.substring(codeStart + type.length + 3, codeEnd)
+        .replace(/([+-\s*])\d+\s*[\.|]\s/g, '$1')
+        .trim();
     return code;
 };
 
