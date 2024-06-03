@@ -1,24 +1,24 @@
 import inquirer from 'inquirer';
 
-export interface PromptConfigContext {
+export interface AgentContext {
     rootDir: string;
     codeContent: string;
     ask: (questions: inquirer.Question[]) => Promise<any>;
     copyToClipboard: (content: any) => void;
     log: (message: any) => void;
-    applyCodeDiff: (context: PromptConfigContext) => Promise<void>;
-    runPrompt: (config: PromptConfig, _context?: PromptConfigContext) => Promise<void>;
+    applyCodeDiff: (context: AgentContext) => Promise<void>;
+    runPrompt: (config: Agent, _context?: AgentContext) => Promise<void>;
     prompt: string;
     response: string;
     data?: any;
 }
 
-export interface PromptConfig {
-    label: string; // Label for the prompt
+export interface Agent {
+    name: string; // Label for the prompt
     rootDir: string; // Path to the project folder
-    buildPrompt: (context: PromptConfigContext) => Promise<{
+    buildPrompt: (context: AgentContext) => Promise<{
         responseType: 'text/plain' | 'application/json';
         prompt: string;
     }>;
-    handleResponse: (context: PromptConfigContext) => Promise<void>;
+    handleResponse: (context: AgentContext) => Promise<void>;
 }

@@ -8,7 +8,7 @@ import {
     SUGGEST_THINGS,
     TECH_SPEC_PROMPT
 } from './constants.js';
-import type { PromptConfig } from './types.js';
+import type { Agent } from './types.js';
 import {
     getGitDiff,
     getPreviousRecords,
@@ -24,9 +24,9 @@ import * as fs from 'fs';
 import inquirer from 'inquirer';
 inquirer.registerPrompt('press-to-continue', PressToContinuePrompt);
 
-const runAndFix = (folderPath: string): PromptConfig => {
+const runAndFix = (folderPath: string): Agent => {
     return {
-        label: 'Run and Fix',
+        name: 'Run and Fix',
         rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: 'text/plain' | 'application/json' = 'text/plain';
@@ -91,9 +91,9 @@ const runAndFix = (folderPath: string): PromptConfig => {
     };
 };
 
-const codeSpec = (folderPath: string): PromptConfig => {
+const codeSpec = (folderPath: string): Agent => {
     return {
-        label: 'Code Spec',
+        name: 'Code Spec',
         rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: 'text/plain' | 'application/json' = 'text/plain';
@@ -126,9 +126,9 @@ const codeSpec = (folderPath: string): PromptConfig => {
     };
 };
 
-const codeDiff = (folderPath: string): PromptConfig => {
+const codeDiff = (folderPath: string): Agent => {
     return {
-        label: 'Code Diff',
+        name: 'Code Diff',
         rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: 'text/plain' | 'application/json' = 'text/plain';
@@ -178,9 +178,9 @@ const codeDiff = (folderPath: string): PromptConfig => {
     };
 };
 
-const suggestThings = (folderPath: string): PromptConfig => {
+const suggestThings = (folderPath: string): Agent => {
     return {
-        label: 'Suggest Things',
+        name: 'Suggest Things',
         rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType = 'application/json';
@@ -208,7 +208,7 @@ const suggestThings = (folderPath: string): PromptConfig => {
                 }
             ]);
             context.runPrompt({
-                label: 'Code Diff',
+                name: 'Code Diff',
                 rootDir: folderPath,
                 // responseType: 'text/plain',
                 buildPrompt: async (_) => {
@@ -226,9 +226,9 @@ const suggestThings = (folderPath: string): PromptConfig => {
     };
 };
 
-const generateCommitMessages = (folderPath: string): PromptConfig => {
+const generateCommitMessages = (folderPath: string): Agent => {
     return {
-        label: 'Generate Commit Messages',
+        name: 'Generate Commit Messages',
         rootDir: folderPath,
         buildPrompt: async () => {
             const responseType: 'text/plain' | 'application/json' = 'application/json';
@@ -261,7 +261,7 @@ const generateCommitMessages = (folderPath: string): PromptConfig => {
     };
 };
 
-export const promptConfigs = {
+export const agents = {
     runAndFix,
     codeSpec,
     codeDiff,

@@ -12,7 +12,7 @@ import {
 } from './constants.js';
 import { applyDiff, parseCode } from './diff.js';
 import { getDirectoryContent } from './llm.js';
-import type { PromptConfig, PromptConfigContext } from './types.js';
+import type { Agent, AgentContext } from './types.js';
 import {
     copyOutputToClipboard,
     openFile,
@@ -101,28 +101,40 @@ export const sendToLLMStream = async (prompt: string,  options?: {
             'models/gemini-1.0-pro' |
             'models/gemini-0.1'
         ) => model;
+        let model = GEMINI_MODELS('models/gemini-1.5-pro-latest');
+        while (true) {
+            try {
+                console.log(`Using model ${model}...`);
+                const gemini = genAI.getGenerativeModel({ model });
+                const response = await gemini.generateContentStream({
+                    contents: [{
+                        role: 'user',
+                        parts: [{
+                            text: prompt
+                        }],
+                    }],
+                    generationConfig: {
+                        responseMimeType: responseType
+                    }
+                });
+                let responseText = '';
 
-        const model = genAI.getGenerativeModel({ model: GEMINI_MODELS('models/gemini-1.5-pro-latest') });
-        const response = await model.generateContentStream({
-            contents: [{
-                role: 'user',
-                parts: [{
-                    text: prompt
-                }],
-            }],
-            generationConfig: {
-                responseMimeType: responseType
+                for await (const chunk of response.stream) {
+                    responseText += chunk.text()
+                    console.log(responseText);
+                }
+
+                return responseText;
+            } catch(e: any) {
+                if (e.status === 429) {
+                    const newModel = GEMINI_MODELS('gemini-1.5-flash-latest');
+                    console.log(`${model} limit reached, trying with ${newModel}`)
+                    model = newModel;
+                    continue;
+                }
+                console.log(e);
             }
-        });
-        let responseText = '';
-
-        for await (const chunk of response.stream) {
-            responseText += chunk.text()
-            console.log(responseText);
         }
-
-        return responseText;
-
     } else {
         const model = new openai.OpenAI({
             apiKey: apiKey,
@@ -271,12 +283,12 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
 
 // this function will take a prompt config object
 // and will implement the prompt and handle response
-export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptConfigContext) => {
+export const runPrompt = async (promptConfig: Agent, _context?: AgentContext) => {
     const rootDir = promptConfig.rootDir;
 
     console.info(`Working with folder: ${rootDir}`);
 
-    const context: PromptConfigContext = {
+    const context: AgentContext = {
         rootDir,
         ask: async (question: inquirer.Question) => {
             return await inquirer.prompt(question);

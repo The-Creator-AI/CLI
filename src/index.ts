@@ -5,7 +5,7 @@ import {
   readLastCodeBlock,
   runPrompt,
 } from './remote.js';
-import { promptConfigs } from './prompt-configs.js';
+import { agents } from './agents.js';
 
 const main = async () => {
   // const { folderPath } = await inquirer.prompt({
@@ -28,8 +28,8 @@ const main = async () => {
           name: 'Apply last diff',
           value: 'apply-last-diff',
         },
-        ...Object.entries(promptConfigs).map(([key, value]) => ({
-          name: value(folderPath).label,
+        ...Object.entries(agents).map(([key, value]) => ({
+          name: value(folderPath).name,
           value: key,
         }))
       ],
@@ -44,7 +44,7 @@ const main = async () => {
     console.log('Diff applied!');
   } else {
     console.log(`Running prompt for ${action}`);
-    await runPrompt(promptConfigs[action](folderPath));
+    await runPrompt(agents[action](folderPath));
   }
 
   return 'Done';
