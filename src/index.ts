@@ -1,11 +1,14 @@
 import inquirer from 'inquirer';
-import { DIFF_PATCH_FILE } from './constants.js';
+import { DIFF_PATCH_FILE, OUTPUT_FILE } from './constants.js';
 import { applyDiff } from './diff.js';
 import {
   readLastCodeBlock,
   runPrompt,
 } from './remote.js';
 import { agents } from './agents.js';
+import { getDirectoryContent } from './llm.js';
+import * as fs from 'fs';
+import { openFile } from './utils.js';
 
 const main = async () => {
   // const { folderPath } = await inquirer.prompt({
@@ -28,6 +31,10 @@ const main = async () => {
           name: 'Apply last diff',
           value: 'apply-last-diff',
         },
+        {
+          name: 'Get code content',
+          value: 'get-code-content'
+        },
         ...Object.entries(agents).map(([key, value]) => ({
           name: value(folderPath).name,
           value: key,
@@ -42,6 +49,10 @@ const main = async () => {
     console.log('Applying diff...');
     await applyDiff(diff);
     console.log('Diff applied!');
+  } if (action === 'get-code-content') {
+    const codeContent = getDirectoryContent(folderPath)
+    fs.writeFileSync(OUTPUT_FILE, codeContent);
+    openFile(OUTPUT_FILE);
   } else {
     console.log(`Running prompt for ${action}`);
     await runPrompt(agents[action](folderPath));
