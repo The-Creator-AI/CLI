@@ -16,9 +16,9 @@ export interface PromptConfigContext {
 export interface PromptConfig {
     label: string; // Label for the prompt
     rootDir: string; // Path to the project folder
-    responseType: 'text/plain' | 'application/json';
-    prePrompt: (context: PromptConfigContext) => Promise<string>; // Function to generate a pre-prompt
-    postPrompt: (context: PromptConfigContext) => Promise<string>; // Function to generate a post-prompt
-    processContent: (context: PromptConfigContext) => Promise<string>; // Function to process the project content
-    handleResponse: (context: PromptConfigContext) => Promise<void>; // Function to handle the LLM response
+    buildPrompt: (context: PromptConfigContext) => Promise<{
+        responseType: 'text/plain' | 'application/json';
+        prompt: string;
+    }>;
+    handleResponse: (context: PromptConfigContext) => Promise<void>;
 }

@@ -297,27 +297,17 @@ export const runPrompt = async (promptConfig: PromptConfig, _context?: PromptCon
         codeContent: getDirectoryContent(rootDir),
     };
 
-    // Process the pre-prompt
-    const prePrompt = await promptConfig.prePrompt(context);
-    console.info(`Pre-prompt: ${prePrompt}`);
-    context.prompt += prePrompt;
-
-    // Process the code content in the rootDir
-    const content = await promptConfig.processContent(context);
-    // console.info(`Content: ${content}`);
-    context.prompt += content;
-
-    // Process the post-prompt
-    const postPrompt = await promptConfig.postPrompt(context);
-    console.info(`Post-prompt: ${postPrompt}`);
-    context.prompt += postPrompt;
+    // Build prompt
+    const builtPrompt = await promptConfig.buildPrompt(context);
+    context.prompt = builtPrompt.prompt;
+    console.info(`Prompt: ${context.prompt}`);
 
     // console.info(`Final prompt: ${finalPrompt}`);
     saveLLMPrompt(context.prompt);
 
     // Handle response
     context.response = await sendToLLMStream(context.prompt, {
-        responseType: promptConfig.responseType,
+        responseType: builtPrompt.responseType,
     });
     saveLLMResponse(context.response);
     console.info(`LLM response: ${context.response}`);
