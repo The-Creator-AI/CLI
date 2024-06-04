@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
 // import fetch from 'node-fetch';
@@ -7,10 +7,10 @@ import * as openai from "openai";
 import {
     BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST,
     DIFF_PATCH_FILE,
+    IMAGE_FOLDER,
     LLM_RESPONSE_FILE,
     OUTPUT_FILE
 } from './constants.js';
-import { applyDiff, parseCode } from './diff.js';
 import { getDirectoryContent } from './llm.js';
 import type { Agent, AgentContext } from './types.js';
 import {
@@ -19,6 +19,9 @@ import {
     readFileContent,
     resetUnstagedFiles
 } from './utils.js';
+import { parseCode } from './utils/code-parsing.js';
+import { applyDiff } from './utils/git/diff/apply-diff.js';
+import parseDiff from 'parse-diff';
 
 // // global fetch
 // (global as any).fetch = fetch;
@@ -102,30 +105,51 @@ export const sendToLLMStream = async (prompt: string,  options?: {
             'models/gemini-0.1'
         ) => model;
         let model = GEMINI_MODELS('models/gemini-1.5-pro-latest');
+        let debounce = 0;
         while (true) {
+            if (debounce > 0) {
+                console.log(`Waiting for ${Math.floor(debounce / 1000)} seconds...`);
+            }
+            await new Promise(resolve => setTimeout(resolve, debounce));
             try {
                 console.log(`Using model ${model}...`);
                 const gemini = genAI.getGenerativeModel({ model });
+
+                const imageParts: Part[] = [];
+                const images = await getDirectoryContent(IMAGE_FOLDER);
+                for (const image of images) {
+                    const imagePart = {
+                        image: {
+                            fileData: fs.readFileSync(image),
+                            mimeType: 'image/png'
+                        }
+                    }
+                    imageParts.push(imagePart as any);
+                }
                 const response = await gemini.generateContentStream({
                     contents: [{
                         role: 'user',
                         parts: [{
                             text: prompt
-                        }],
+                        },
+                        ...imageParts,
+                        ],
                     }],
                     generationConfig: {
                         responseMimeType: responseType
                     }
                 });
+                debounce = 0;
                 let responseText = '';
 
                 for await (const chunk of response.stream) {
-                    responseText += chunk.text()
-                    console.log(responseText);
+                    responseText += chunk.text();
+                    console.log(chunk.text());
                 }
 
                 return responseText;
             } catch(e: any) {
+                debounce += 5000;
                 if (e.status === 429) {
                     const newModel = GEMINI_MODELS('gemini-1.5-flash-latest');
                     console.log(`${model} limit reached, trying with ${newModel}`)
@@ -225,7 +249,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
         openPatchFile();
 
         console.log('Appllying diff...');
-        applyDiff(diff);
+        applyDiff(parseDiff(diff));
         console.log('Diff applied!');
 
         const answer = await inquirer.prompt({
@@ -255,7 +279,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
 
             if (diffAction === 'reapply') {
                 console.log('Reapplying diff...');
-                applyDiff(diff);
+                applyDiff(parseDiff(diff));
                 console.log('Diff reapplied!');
             } else if (diffAction === 'resend') {
                 resetUnstagedFiles();

@@ -64,26 +64,6 @@ export const resetUnstagedFiles = () => {
     return output.toString();
 };
 
-export const gitCommit = (commitMessage: string, commitDescription: string) => {
-    try {
-        // 1. Construct the commit command
-        let commitCommand = `git commit -m "${commitMessage}"`;
-
-        // 2. (Optional) Include description if provided
-        if (commitDescription.trim()) {
-            commitCommand += ` -m "${commitDescription}"`;
-        }
-
-        // 3. Execute the commit command
-        const commitOutput = child_process.execSync(commitCommand);
-
-        // 4. Handle the commit result
-        console.log("Commit successful:", commitOutput.toString());
-    } catch (error) {
-        console.error("Error during commit:", error);
-    }
-};
-
 // export const logBottom = () => {
 //     const ui = new inquirer.ui.BottomBar();
 

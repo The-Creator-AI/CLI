@@ -1,6 +1,7 @@
 // import editor from '@inquirer/editor';
 import autocomplete from 'inquirer-autocomplete-standalone';
 import {
+    AGENT_SYS_ARCHITECT,
     DEFAULT_PRE_PROMPT,
     GENERATE_COMMIT_MSG,
     POST_PROMPTS_FILE,
@@ -10,19 +11,61 @@ import {
 } from './constants.js';
 import type { Agent } from './types.js';
 import {
-    getGitDiff,
     getPreviousRecords,
-    gitCommit,
     openFile,
     readFileContent,
     saveNewRecord
 } from './utils.js';
-import { parseCode } from './diff.js';
 import * as child_process from 'child_process';
 import PressToContinuePrompt, { KeyDescriptor } from 'inquirer-press-to-continue';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
+
+import { getGitDiff } from './utils/git/diff.js';
+import { gitCommit } from './utils/git/commit.js';
+import { parseCode } from './utils/code-parsing.js';
+
 inquirer.registerPrompt('press-to-continue', PressToContinuePrompt);
+
+const architect = (folderPath: string): Agent => {
+    return {
+        name: 'The Architect',
+        rootDir: folderPath,
+        buildPrompt: async (context) => {
+            const responseType: 'text/plain' | 'application/json' = 'text/plain';
+            let prompt = ``;
+            console.log({ AGENT_SYS_ARCHITECT });
+            // wait for the file to exist
+            // while (!fs.existsSync(AGENT_SYS_ARCHITECT)) {
+            //     await new Promise((resolve) => setTimeout(resolve, 1000));
+            // }
+            prompt += readFileContent(AGENT_SYS_ARCHITECT);
+            prompt += `\n\n\n`;
+            prompt += context.codeContent;
+            prompt += `\n\n\n`;
+            const postPrompt: string = await autocomplete({
+                message: 'What do you need me to plan?',
+                source: async (input) => {
+                    const prompts = getPreviousRecords(POST_PROMPTS_FILE);
+                    const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
+                    return [
+                        ...(filteredPrompts.map((prompt) => ({
+                            value: prompt,
+                            description: prompt
+                        })) || []),
+                        ...(input ? [{ value: input, description: input }] : [])
+                    ];
+                }
+            });
+            saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
+            prompt += postPrompt.trim();
+            return { responseType, prompt, };
+        },
+        handleResponse: async (_) => {
+            // context.applyCodeDiff(context);
+        }
+    };
+};
 
 const runAndFix = (folderPath: string): Agent => {
     return {
@@ -262,6 +305,7 @@ const generateCommitMessages = (folderPath: string): Agent => {
 };
 
 export const agents = {
+    architect,
     runAndFix,
     codeSpec,
     codeDiff,

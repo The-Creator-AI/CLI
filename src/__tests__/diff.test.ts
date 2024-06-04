@@ -1,4 +1,7 @@
-import { getDiffHunks, parseCode } from "../diff.js";
+import { parseCode } from "../utils/code-parsing.js";
+import { applyDiff } from "../utils/git/diff/apply-diff.js";
+import { parseDiff } from "../utils/git/diff/parse-diff.js";
+import * as fs from 'fs';
 
 describe('parseCode', () => {
   it('should parse the diff correctly with line numbers', () => {
@@ -21,7 +24,7 @@ This is another line
   });
 });
 
-describe("getDiffHunks", () => {
+describe("parseDiff", () => {
   it("parses a single-file diff with one hunk", () => {
     const diff = `
 --- a/file.txt
@@ -34,7 +37,7 @@ describe("getDiffHunks", () => {
  And this is the last line.
 `;
 
-    expect(getDiffHunks(diff)).toMatchInlineSnapshot(`
+    expect(parseDiff(diff)).toMatchInlineSnapshot(`
 Array [
   Object {
     "additions": 2,
@@ -106,7 +109,7 @@ Array [
 +And another one.
 `;
 
-    expect(getDiffHunks(diff)).toMatchInlineSnapshot(`
+    expect(parseDiff(diff)).toMatchInlineSnapshot(`
 Array [
   Object {
     "additions": 2,
@@ -191,7 +194,7 @@ Array [
  And this is the last line.
 `;
 
-    expect(getDiffHunks(diff)).toMatchInlineSnapshot(`
+    expect(parseDiff(diff)).toMatchInlineSnapshot(`
 Array [
   Object {
     "additions": 1,
@@ -272,7 +275,7 @@ Array [
   });
 
   it("handles an empty diff", () => {
-    expect(getDiffHunks("")).toEqual([]);
+    expect(parseDiff("")).toEqual([]);
   });
 
   it("handles corner cases like binary files or merge conflicts", () => {
@@ -280,7 +283,7 @@ Array [
 diff --git a/image.png b/image.png
 Binary files a/image.png and b/image.png differ
 `;
-    expect(getDiffHunks(diffWithBinary)).toMatchInlineSnapshot(`
+    expect(parseDiff(diffWithBinary)).toMatchInlineSnapshot(`
 Array [
   Object {
     "additions": 0,
@@ -301,6 +304,181 @@ This is another first line.
 `;
     // Depending on your expected behavior, either return an empty array or 
     // a specific structure for conflicts
-    expect(getDiffHunks(diffWithMergeConflict)).toEqual([]);
+    expect(parseDiff(diffWithMergeConflict)).toEqual([]);
+  });
+});
+
+const testFile = 'test.txt';
+
+describe('applyDiff - Basic Functionality', () => {
+  beforeEach(() => {
+    fs.writeFileSync(testFile, 'This is the first line.\nThis is the second line.\nThis is the third line.');
+  });
+
+  afterEach(() => {
+    fs.unlinkSync(testFile);
+  });
+
+  it('Simple Addition', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -2,3 +2,4 @@
+       This is the second line.
+       This is the third line.
+      +This is the fourth line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the first line.\nThis is the second line.\nThis is the third line.\nThis is the fourth line.');
+  });
+
+  it('Simple Deletion', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -2,3 +2,2 @@
+       This is the second line.
+-     This is the third line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the first line.\nThis is the second line.');
+  });
+
+  it('Simple Modification', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -1,3 +1,3 @@
+-     This is the first line.
+      This is the second line.
+      This is the third line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the second line.\nThis is the third line.');
+  });
+});
+
+describe('applyDiff - Multiple Changes', () => {
+  beforeEach(() => {
+    fs.writeFileSync(testFile, 'This is the first line.\nThis is the second line.\nThis is the third line.');
+  });
+
+  afterEach(() => {
+    fs.unlinkSync(testFile);
+  });
+
+  it('Multiple Additions', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -2,3 +2,5 @@
+       This is the second line.
+       This is the third line.
+      +This is the fourth line.
+      +This is the fifth line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the first line.\nThis is the second line.\nThis is the third line.\nThis is the fourth line.\nThis is the fifth line.');
+  });
+
+  it('Multiple Deletions', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -1,4 +1,2 @@
+-     This is the first line.
+-     This is the second line.
+      This is the third line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the third line.');
+  });
+
+  it('Mixed Changes', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -1,4 +1,5 @@
+-     This is the first line.
+      This is the second line.
+      This is the third line.
+      +This is a new line.
+      @@ -3,3 +4,4 @@
+      This is the third line.
+      +This is another new line.
+      `;
+
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the second line.\nThis is the third line.\nThis is a new line.\nThis is the third line.\nThis is another new line.');
+  });
+});
+
+describe('applyDiff - Edge Cases', () => {
+  beforeEach(() => {
+    fs.writeFileSync(testFile, 'This is the first line.\nThis is the second line.\nThis is the third line.');
+  });
+
+  afterEach(() => {
+    fs.unlinkSync(testFile);
+  });
+
+  it('Empty Diff', () => {
+    const diffString = '';
+    const hunks = parseDiff(diffString);
+    applyDiff(hunks);
+    const fileContent = fs.readFileSync(testFile, 'utf8');
+    expect(fileContent).toBe('This is the first line.\nThis is the second line.\nThis is the third line.');
+  });
+
+  it('Non-Existent File', () => {
+    const diffString = `
+      --- a/nonexistent.txt
+      +++ b/nonexistent.txt
+      @@ -1,2 +1,2 @@
+-     This is the first line.
+-     This is the second line.
++     This is a new line.
++     This is another new line.
+      `;
+    const hunks = parseDiff(diffString);
+    expect(() => {
+      applyDiff(hunks);
+    }).toThrowError();
+  });
+
+  it('Corrupted Diff', () => {
+    const diffString = `
+      --- a/test.txt
+      +++ b/test.txt
+      @@ -1,3 +1,3 @@
+-     This is the first line.
+      This is the second line.
+      This is the third line.
+      @@ -1,3 +1,3 @@
+-     This is the first line.
+      This is the second line.
+      This is the third line.
+      `;
+    const hunks = parseDiff(diffString);
+    expect(() => {
+      applyDiff(hunks);
+    }).toThrowError();
   });
 });

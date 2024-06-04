@@ -1,6 +1,5 @@
 import inquirer from 'inquirer';
 import { DIFF_PATCH_FILE, OUTPUT_FILE } from './constants.js';
-import { applyDiff } from './diff.js';
 import {
   readLastCodeBlock,
   runPrompt,
@@ -9,6 +8,8 @@ import { agents } from './agents.js';
 import { getDirectoryContent } from './llm.js';
 import * as fs from 'fs';
 import { openFile } from './utils.js';
+import { applyDiff } from './utils/git/diff/apply-diff.js';
+import { parseDiff } from './utils/git/diff/parse-diff.js';
 
 const main = async () => {
   // const { folderPath } = await inquirer.prompt({
@@ -47,7 +48,7 @@ const main = async () => {
     console.log(`Reading diff from ${DIFF_PATCH_FILE}`);
     const diff = readLastCodeBlock();
     console.log('Applying diff...');
-    await applyDiff(diff);
+    await applyDiff(parseDiff(diff));
     console.log('Diff applied!');
   } if (action === 'get-code-content') {
     const codeContent = getDirectoryContent(folderPath)
