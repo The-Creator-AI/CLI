@@ -80,6 +80,8 @@ export const architect = (folderPath: string): Agent => {
                         }
                     });
                     saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
+                    prompt += `\n\n\n`;
+                    prompt += `User:\n`;
                     prompt += `I call upon the ${BOT.architect} to handle what user asks below (remember to maintain the same JSON structure in your response) -`
                     prompt += `\n\n\n`;
                     prompt += postPrompt.trim();
