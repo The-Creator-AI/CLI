@@ -51,7 +51,7 @@ export const architect = (folderPath: string): Agent => {
                 prompt += `\n\n\n`;
                 prompt += `I call upon the ${BOT.architect} to expand on the step below -`
                 prompt += `\n\n\n`;
-                context.data?.stepToExpand
+                prompt += context.data?.stepToExpand;
                 prompt += `\n\n\n`;
                 return { responseType, prompt, };
             } else {
@@ -122,8 +122,8 @@ export const architect = (folderPath: string): Agent => {
                         plan,
                         stepToExpand: answers.action
                     };
-                    console.log(context.data);
-                    // await runAgent(architect(context.rootDir), context);
+                    console.log(`Expanding this step...\n${context.data?.stepToExpand}`);
+                    await runAgent(architect(context.rootDir), context);
                 } catch (e) {
                     context.data = {
                         badReponse: true,
