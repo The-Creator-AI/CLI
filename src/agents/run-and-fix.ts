@@ -4,16 +4,20 @@ import {
     DEFAULT_PRE_PROMPT
 } from '../constants.js';
 import type { Agent, LLMResponseType } from '../types.js';
+import { getDirectoryContent } from '../llm.js';
 
 export const runAndFix = (folderPath: string): Agent => {
     return {
         name: 'Run and Fix',
-        rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
-            prompt += DEFAULT_PRE_PROMPT;
-            prompt += `\n\n\n`;
+            if (!context.data) {
+                prompt += DEFAULT_PRE_PROMPT;
+                prompt += `\n\n\n`;
+                prompt += getDirectoryContent(folderPath);
+                prompt += `\n\n\n`;
+            }
             const { command } = context.data?.runAndFix || await context.ask([{
                 type: 'input',
                 name: 'command',
@@ -30,7 +34,6 @@ export const runAndFix = (folderPath: string): Agent => {
                 child_process.exec(command, (stderr, stdout, _) => {
                     console.log('Command Output: ', stdout);
                     console.log('Command Error: ', stderr);
-                    prompt += context.codeContent;
                     prompt += `\n\n\n\n\n\n`;
                     prompt += `$ ${command}`
                     prompt += `\n\n`;
@@ -66,7 +69,7 @@ export const runAndFix = (folderPath: string): Agent => {
                 default: 'send',
             }]);
             if (action === 'run-again') {
-                context.runAgent(runAndFix(context.rootDir), context);
+                context.runAgent(runAndFix(folderPath), context);
             }
         }
     };

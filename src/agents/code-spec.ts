@@ -8,17 +8,19 @@ import {
     getPreviousRecords,
     saveNewRecord
 } from '../utils.js';
+import { getDirectoryContent } from '../llm.js';
 
 export const codeSpec = (folderPath: string): Agent => {
     return {
         name: 'Code Spec',
-        rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
+            prompt += getDirectoryContent(folderPath);
+            prompt += `\n\n\n`;
             prompt += TECH_SPEC_PROMPT;
             prompt += `\n\n\n`;
-            prompt += context.codeContent;
+            prompt += context.chatSoFar;
             prompt += `\n\n\n`;
             const postPrompt: string = await autocomplete({
                 message: 'What spec would you like to create/update?',

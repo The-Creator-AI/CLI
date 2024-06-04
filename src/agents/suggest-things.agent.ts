@@ -3,6 +3,7 @@ import {
     DEFAULT_PRE_PROMPT,
     SUGGEST_THINGS
 } from '../constants.js';
+import { getDirectoryContent } from '../llm.js';
 import type { Agent, LLMResponseType } from '../types.js';
 
 import { parseCode } from '../utils/code-parsing.js';
@@ -10,17 +11,16 @@ import { parseCode } from '../utils/code-parsing.js';
 export const suggestThings = (folderPath: string): Agent => {
     return {
         name: 'Suggest Things',
-        rootDir: folderPath,
-        buildPrompt: async (context) => {
+        buildPrompt: async () => {
             const responseType = 'application/json';
             let prompt = ``;
-            prompt += context.codeContent;
+            prompt += getDirectoryContent(folderPath);
             prompt += `\n\n\n`;
             prompt += SUGGEST_THINGS;
             return { responseType, prompt };
         },
         handleResponse: async (context) => {
-            const rawJson = parseCode(context.response, 'json');
+            const rawJson = parseCode(context.lastResponse, 'json');
             const suggestions = JSON.parse(rawJson);
             console.log(suggestions);
 
@@ -38,8 +38,6 @@ export const suggestThings = (folderPath: string): Agent => {
             ]);
             context.runAgent({
                 name: 'Code Diff',
-                rootDir: folderPath,
-                // responseType: 'text/plain',
                 buildPrompt: async (_) => {
                     const responseType: LLMResponseType = 'text/plain';
                     let prompt = ``;

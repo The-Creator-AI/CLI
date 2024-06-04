@@ -13,6 +13,7 @@ import {
 
 import { parseCode } from '../utils/code-parsing.js';
 import { runAgent } from '../remote.js';
+import { getDirectoryContent } from '../llm.js';
 
 interface PlanStep {
     step_type: "design" | "implementation" | "documentation";
@@ -38,24 +39,21 @@ interface ProjectPlan {
 export const architect = (folderPath: string): Agent => {
     return {
         name: BOT.architect,
-        rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: LLMResponseType = 'application/json';
             let prompt = ``;
             if (context.data?.badReponse) {
-                prompt += `\n\n\n`;
-                prompt += `Hey ${BOT.architect}, the last reponse didn't have correct structure, please give the response structure. And don't ask me further questions, just make your best guess.`
+                prompt += `Hey ${BOT.architect}, the last reponse didn't have correct structure, please give the response again and this time with correct json structure.`
                 return { responseType, prompt, };
             }
             else if (context.data?.stepToExpand) {
-                prompt += `\n\n\n`;
-                prompt += `I call upon the ${BOT.architect} to expand on the step below -`
+                prompt += `I call upon the ${BOT.architect} to expand on the step below (remember to maintain the same JSON structure in your response) -`
                 prompt += `\n\n\n`;
                 prompt += context.data?.stepToExpand;
                 prompt += `\n\n\n`;
                 return { responseType, prompt, };
             } else {
-                prompt += context.codeContent;
+                prompt += getDirectoryContent(folderPath);
                 prompt += `\n\n\n`;
                 const postPrompt: string = await autocomplete({
                     message: 'What do you need me to plan?',
@@ -79,9 +77,9 @@ export const architect = (folderPath: string): Agent => {
             }
         },
         handleResponse: async (context) => {
-            context.codeContent += `\n\n\n`;
-            context.codeContent += context.response;
-            context.codeContent += `\n\n\n`;
+            let plan: ProjectPlan = JSON.parse(parseCode(context.lastResponse, 'json'));
+            console.log(plan);
+
             const answers = await context.ask([
                 {
                     type: 'list',
@@ -107,8 +105,6 @@ export const architect = (folderPath: string): Agent => {
 
             if (answers.action === 'expand-step') {
                 try {
-                    let plan: ProjectPlan = JSON.parse(parseCode(context.response, 'json'));
-                    console.log(plan);
                     const answers = await context.ask([
                         {
                             type: 'list',
@@ -123,12 +119,12 @@ export const architect = (folderPath: string): Agent => {
                         stepToExpand: answers.action
                     };
                     console.log(`Expanding this step...\n${context.data?.stepToExpand}`);
-                    await runAgent(architect(context.rootDir), context);
+                    await runAgent(architect(folderPath), context);
                 } catch (e) {
                     context.data = {
                         badReponse: true,
                     };
-                    await runAgent(architect(context.rootDir), context);
+                    await runAgent(architect(folderPath), context);
                 }
             } else if (answers.action === 'request-code') {
                 // const { stepIdToRequest } = await context.ask([{

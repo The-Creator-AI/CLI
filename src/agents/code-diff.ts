@@ -15,17 +15,19 @@ import {
     readFileContent,
     saveNewRecord
 } from '../utils.js';
+import { getDirectoryContent } from '../llm.js';
 
 export const codeDiff = (folderPath: string): Agent => {
     return {
         name: 'Code Diff',
-        rootDir: folderPath,
         buildPrompt: async (context) => {
             const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
+            prompt += getDirectoryContent(folderPath);
+            prompt += `\n\n\n`;
             prompt += TECH_SPEC_PROMPT;
             prompt += `\n\n\n`;
-            prompt += context.codeContent;
+            prompt += context.chatSoFar;
 
             const prompts = getPreviousRecords(POST_PROMPTS_FILE);
             let postPrompt: string = await autocomplete({

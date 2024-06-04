@@ -315,12 +315,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
 // this function will take a prompt config object
 // and will implement the prompt and handle response
 export const runAgent = async (promptConfig: Agent, _context?: AgentContext) => {
-    const rootDir = promptConfig.rootDir;
-
-    console.info(`Working with folder: ${rootDir}`);
-
-    const context: AgentContext = {
-        rootDir,
+    const context: AgentContext = _context || {
         ask: async (question: inquirer.Question) => {
             return await inquirer.prompt(question);
         },
@@ -331,28 +326,45 @@ export const runAgent = async (promptConfig: Agent, _context?: AgentContext) => 
             console.log(message);
         },
         applyCodeDiff: async (context) => {
-            applyCodeDiff(context.prompt, context.response);
+            applyCodeDiff(context.lastPrompt, context.lastResponse);
         },
         runAgent,
-        prompt: '',
-        response: '',
-        ..._context,
-        codeContent: getDirectoryContent(rootDir),
+        chatSoFar: '',
+        lastPrompt: '',
+        lastResponse: ''
     };
 
     // Build prompt
     const builtPrompt = await promptConfig.buildPrompt(context);
-    context.prompt = builtPrompt.prompt;
-    console.info(`Prompt: ${context.prompt}`);
-
+    context.lastPrompt = builtPrompt.prompt;
+    console.info(`Prompt: ${context.lastPrompt}`);
     // console.info(`Final prompt: ${finalPrompt}`);
-    saveLLMPrompt(context.prompt);
+    saveLLMPrompt(context.lastPrompt);
+
+    // Update chat so far
+    if (!context.chatSoFar) {
+        context.chatSoFar = '';
+    } else {
+        context.chatSoFar += `\n\n\n`;
+    }
+    context.chatSoFar += `User:\n`;
+    context.chatSoFar += context.lastPrompt;
 
     // Handle response
-    context.response = await sendToLLMStream(context.prompt, {
+    context.lastResponse = await sendToLLMStream(context.chatSoFar, {
         responseType: builtPrompt.responseType,
     });
-    saveLLMResponse(context.response);
+    saveLLMResponse(context.lastResponse);
+
+    // Update chat so far
+    context.chatSoFar += `\n\n\n`;
+    context.chatSoFar += `Model:\n`;
+    context.chatSoFar += context.lastResponse;
+
     // console.info(`LLM response: ${context.response}`);
-    await promptConfig.handleResponse(context);
+    await promptConfig.handleResponse({
+        ...context,
+        lastPrompt: context.lastPrompt,
+        lastResponse: context.lastResponse
+    });
 };

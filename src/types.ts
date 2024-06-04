@@ -2,24 +2,26 @@ import inquirer from 'inquirer';
 
 export type LLMResponseType = 'text/plain' | 'application/json';
 export interface AgentContext {
-    rootDir: string;
-    codeContent: string;
+    chatSoFar?: string;
     ask: (questions: inquirer.Question[]) => Promise<any>;
     copyToClipboard: (content: any) => void;
     log: (message: any) => void;
-    applyCodeDiff: (context: AgentContext) => Promise<void>;
+    applyCodeDiff: (context: Required<Pick<AgentContext, 'lastPrompt'>> &
+        Required<Pick<AgentContext, 'lastResponse'>> &
+        AgentContext) => Promise<void>;
     runAgent: (config: Agent, _context?: AgentContext) => Promise<void>;
-    prompt: string;
-    response: string;
+    lastPrompt?: string;
+    lastResponse?: string;
     data?: any;
 }
 
 export interface Agent {
-    name: string; // Label for the prompt
-    rootDir: string; // Path to the project folder
+    name: string;
     buildPrompt: (context: AgentContext) => Promise<{
         responseType: LLMResponseType;
         prompt: string;
     }>;
-    handleResponse: (context: AgentContext) => Promise<void>;
+    handleResponse: (context: Required<Pick<AgentContext, 'lastPrompt'>> &
+        Required<Pick<AgentContext, 'lastResponse'>> &
+        AgentContext) => Promise<void>;
 }
