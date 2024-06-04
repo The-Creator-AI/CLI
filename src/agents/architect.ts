@@ -80,19 +80,19 @@ export const architect = (folderPath: string): Agent => {
                         }
                     });
                     saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
-                    prompt += `I call upon the ${BOT.architect} to handle what user asks below -`
+                    prompt += `I call upon the ${BOT.architect} to handle what user asks below (remember to maintain the same JSON structure in your response) -`
                     prompt += `\n\n\n`;
                     prompt += postPrompt.trim();
                     return { responseType, prompt, };
                 } else {
-                    prompt += getChatSoFar();
+                    prompt += await getChatSoFar();
                     prompt += `\n\n\n`;
                     const { nextInPlan } = await context.ask([{
                         type: 'input',
                         name: 'nextInPlan',
                         message: 'What would you like to do next?'
                     }]);
-                    prompt += `I call upon the ${BOT.architect} to handle what user asks below -`
+                    prompt += `I call upon the ${BOT.architect} to handle what user asks below (remember to maintain the same JSON structure in your response) -`
                     prompt += `\n\n\n`;
                     prompt += nextInPlan.trim();
                     return { responseType, prompt, };
