@@ -1,13 +1,9 @@
-import * as path from 'path';
-
-
 export const SETTINGS_FOLDER = '.llm';
 export const POST_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'prompt.llm';
 export const OUTPUT_FILE = SETTINGS_FOLDER + '/' + 'content.llm';
 export const LLM_RESPONSE_FILE = SETTINGS_FOLDER + '/' + 'llm-response.llm';
 export const DIFF_PATCH_FILE = SETTINGS_FOLDER + '/' + 'diff.patch';
 export const POST_PROMPTS_FILE = SETTINGS_FOLDER + '/' + 'custom-prompts.llm';
-export const AGENT_SYS_ARCHITECT = path.join(path.dirname(import.meta.url), './sys/architect.md')
 export const COMPLETE_DIFF_REQUEST = `The diff you provided is correct but it is not complete. Please provide the rest of the changes. Are you sure you have covered all the required files? Functions? etc.`;
 export const IMAGE_FOLDER = SETTINGS_FOLDER + '/images';
 export const BETTERS_DIFF_REQUEST = `The diff seems to be corrupted, please provide the correct diff again.`;
@@ -397,3 +393,9 @@ export const BINARY_EXTENSTIONS = [
 ];
 export const GENERATE_COMMIT_MSG = `Generate a few good commit messages for the change log below. Ensure to return array of objects with two keys - commit & description`;
 export const SUGGEST_THINGS = `Analyse the code above and suggest me the changes that I could do. Give a list of thigns that can be done in the format string[]`;
+export const BOT = {
+  curiosity: 'Curiosity Bot',
+  architect: 'Code Architect Bot',
+  developer: 'Developer Bot',
+  idea: 'Idea Bot'
+};

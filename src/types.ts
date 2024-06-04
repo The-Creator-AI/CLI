@@ -1,5 +1,6 @@
 import inquirer from 'inquirer';
 
+export type LLMResponseType = 'text/plain' | 'application/json';
 export interface AgentContext {
     rootDir: string;
     codeContent: string;
@@ -17,7 +18,7 @@ export interface Agent {
     name: string; // Label for the prompt
     rootDir: string; // Path to the project folder
     buildPrompt: (context: AgentContext) => Promise<{
-        responseType: 'text/plain' | 'application/json';
+        responseType: LLMResponseType;
         prompt: string;
     }>;
     handleResponse: (context: AgentContext) => Promise<void>;

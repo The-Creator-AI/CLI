@@ -346,6 +346,6 @@ export const runPrompt = async (promptConfig: Agent, _context?: AgentContext) =>
         responseType: builtPrompt.responseType,
     });
     saveLLMResponse(context.response);
-    console.info(`LLM response: ${context.response}`);
+    // console.info(`LLM response: ${context.response}`);
     await promptConfig.handleResponse(context);
 };

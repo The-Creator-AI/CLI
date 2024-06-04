@@ -1,7 +1,6 @@
 // import editor from '@inquirer/editor';
 import autocomplete from 'inquirer-autocomplete-standalone';
 import {
-    AGENT_SYS_ARCHITECT,
     DEFAULT_PRE_PROMPT,
     GENERATE_COMMIT_MSG,
     POST_PROMPTS_FILE,
@@ -9,7 +8,7 @@ import {
     SUGGEST_THINGS,
     TECH_SPEC_PROMPT
 } from './constants.js';
-import type { Agent } from './types.js';
+import type { Agent, LLMResponseType } from './types.js';
 import {
     getPreviousRecords,
     openFile,
@@ -24,55 +23,17 @@ import inquirer from 'inquirer';
 import { getGitDiff } from './utils/git/diff.js';
 import { gitCommit } from './utils/git/commit.js';
 import { parseCode } from './utils/code-parsing.js';
+import { architect } from './agents/architect.js';
 
 inquirer.registerPrompt('press-to-continue', PressToContinuePrompt);
 
-const architect = (folderPath: string): Agent => {
-    return {
-        name: 'The Architect',
-        rootDir: folderPath,
-        buildPrompt: async (context) => {
-            const responseType: 'text/plain' | 'application/json' = 'text/plain';
-            let prompt = ``;
-            console.log({ AGENT_SYS_ARCHITECT });
-            // wait for the file to exist
-            // while (!fs.existsSync(AGENT_SYS_ARCHITECT)) {
-            //     await new Promise((resolve) => setTimeout(resolve, 1000));
-            // }
-            prompt += readFileContent(AGENT_SYS_ARCHITECT);
-            prompt += `\n\n\n`;
-            prompt += context.codeContent;
-            prompt += `\n\n\n`;
-            const postPrompt: string = await autocomplete({
-                message: 'What do you need me to plan?',
-                source: async (input) => {
-                    const prompts = getPreviousRecords(POST_PROMPTS_FILE);
-                    const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
-                    return [
-                        ...(filteredPrompts.map((prompt) => ({
-                            value: prompt,
-                            description: prompt
-                        })) || []),
-                        ...(input ? [{ value: input, description: input }] : [])
-                    ];
-                }
-            });
-            saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
-            prompt += postPrompt.trim();
-            return { responseType, prompt, };
-        },
-        handleResponse: async (_) => {
-            // context.applyCodeDiff(context);
-        }
-    };
-};
 
 const runAndFix = (folderPath: string): Agent => {
     return {
         name: 'Run and Fix',
         rootDir: folderPath,
         buildPrompt: async (context) => {
-            const responseType: 'text/plain' | 'application/json' = 'text/plain';
+            const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
             prompt += DEFAULT_PRE_PROMPT;
             prompt += `\n\n\n`;
@@ -139,7 +100,7 @@ const codeSpec = (folderPath: string): Agent => {
         name: 'Code Spec',
         rootDir: folderPath,
         buildPrompt: async (context) => {
-            const responseType: 'text/plain' | 'application/json' = 'text/plain';
+            const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
             prompt += TECH_SPEC_PROMPT;
             prompt += `\n\n\n`;
@@ -174,7 +135,7 @@ const codeDiff = (folderPath: string): Agent => {
         name: 'Code Diff',
         rootDir: folderPath,
         buildPrompt: async (context) => {
-            const responseType: 'text/plain' | 'application/json' = 'text/plain';
+            const responseType: LLMResponseType = 'text/plain';
             let prompt = ``;
             prompt += TECH_SPEC_PROMPT;
             prompt += `\n\n\n`;
@@ -255,7 +216,7 @@ const suggestThings = (folderPath: string): Agent => {
                 rootDir: folderPath,
                 // responseType: 'text/plain',
                 buildPrompt: async (_) => {
-                    const responseType: 'text/plain' | 'application/json' = 'text/plain';
+                    const responseType: LLMResponseType = 'text/plain';
                     let prompt = ``;
                     prompt += DEFAULT_PRE_PROMPT;
                     prompt += answers.action;
@@ -274,7 +235,7 @@ const generateCommitMessages = (folderPath: string): Agent => {
         name: 'Generate Commit Messages',
         rootDir: folderPath,
         buildPrompt: async () => {
-            const responseType: 'text/plain' | 'application/json' = 'application/json';
+            const responseType: LLMResponseType = 'application/json';
             let prompt = ``;
             prompt += GENERATE_COMMIT_MSG;
             prompt += `\n\n\n`;
