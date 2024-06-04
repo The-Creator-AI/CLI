@@ -84,7 +84,7 @@ export const architect = (folderPath: string): Agent => {
                 {
                     type: 'list',
                     name: 'action',
-                    message: 'What would you like to do?',
+                    message: 'What would you like to do next?',
                     choices: [
                         {
                             name: 'Expand a step',

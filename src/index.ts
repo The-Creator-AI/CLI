@@ -4,7 +4,7 @@ import {
   readLastCodeBlock,
   runAgent,
 } from './remote.js';
-import { agents } from './agents.js';
+import { agents } from './agents/index.js';
 import { getDirectoryContent } from './llm.js';
 import * as fs from 'fs';
 import { openFile } from './utils.js';
