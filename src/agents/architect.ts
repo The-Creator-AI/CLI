@@ -12,28 +12,19 @@ import {
 } from '../utils.js';
 
 import { parseCode } from '../utils/code-parsing.js';
-import { runAgent } from '../remote.js';
+import { getChatSoFar, runAgent } from '../remote.js';
 import { getDirectoryContent } from '../llm.js';
 
-interface PlanStep {
-    step_type: "design" | "implementation" | "documentation";
+interface Step {
+    step_type: "decision" | "implementation" | "documentation";
     description: string;
-    sub_steps?: Array<SubStep>;  // Optional sub-steps
-}
-
-interface SubStep {
-    step_type: string;  // More varied types for sub-steps
-    description: string;
-    target?: string;    // Optional target file/location
-    resources?: string[]; // Optional resource links
-    dependencies?: string[];  // Optional dependency descriptions
+    steps?: string[];
+    command?: string;
+    code?: string;
 }
 
 interface ProjectPlan {
-    plan_id: string;
-    task_type: string;
-    project_type: string;
-    key_steps: PlanStep[];
+    steps: Step[];
 }
 
 export const architect = (folderPath: string): Agent => {
@@ -53,27 +44,59 @@ export const architect = (folderPath: string): Agent => {
                 prompt += `\n\n\n`;
                 return { responseType, prompt, };
             } else {
-                prompt += getDirectoryContent(folderPath);
-                prompt += `\n\n\n`;
-                const postPrompt: string = await autocomplete({
-                    message: 'What do you need me to plan?',
-                    source: async (input) => {
-                        const prompts = getPreviousRecords(POST_PROMPTS_FILE);
-                        const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
-                        return [
-                            ...(filteredPrompts.map((prompt) => ({
-                                value: prompt,
-                                description: prompt
-                            })) || []),
-                            ...(input ? [{ value: input, description: input }] : [])
-                        ];
-                    }
-                });
-                saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
-                prompt += `I call upon the ${BOT.architect} to handle what user asks below -`
-                prompt += `\n\n\n`;
-                prompt += postPrompt.trim();
-                return { responseType, prompt, };
+                const answers = await context.ask([
+                    {
+                        type: 'list',
+                        name: 'action',
+                        message: 'Would you like to continue the last chat or start fresh?',
+                        choices: [
+                            {
+                                name: 'Continue last chat...',
+                                value: 'last-chat',
+                            },
+                            {
+                                name: 'Start fresh!',
+                                value: 'new-chat',
+                            },
+                        ],
+                        default: 'new-chat',
+                    },
+                ]);
+                if (answers.action === 'new-chat') {
+                    prompt += getDirectoryContent(folderPath);
+                    prompt += `\n\n\n`;
+                    const postPrompt: string = await autocomplete({
+                        message: 'What do you need me to plan?',
+                        source: async (input) => {
+                            const prompts = getPreviousRecords(POST_PROMPTS_FILE);
+                            const filteredPrompts = prompts.filter((prompt) => prompt.includes(input || ''));
+                            return [
+                                ...(filteredPrompts.map((prompt) => ({
+                                    value: prompt,
+                                    description: prompt
+                                })) || []),
+                                ...(input ? [{ value: input, description: input }] : [])
+                            ];
+                        }
+                    });
+                    saveNewRecord(POST_PROMPTS_FILE, postPrompt as string);
+                    prompt += `I call upon the ${BOT.architect} to handle what user asks below -`
+                    prompt += `\n\n\n`;
+                    prompt += postPrompt.trim();
+                    return { responseType, prompt, };
+                } else {
+                    prompt += getChatSoFar();
+                    prompt += `\n\n\n`;
+                    const { nextInPlan } = await context.ask([{
+                        type: 'input',
+                        name: 'nextInPlan',
+                        message: 'What would you like to do next?'
+                    }]);
+                    prompt += `I call upon the ${BOT.architect} to handle what user asks below -`
+                    prompt += `\n\n\n`;
+                    prompt += nextInPlan.trim();
+                    return { responseType, prompt, };
+                }
             }
         },
         handleResponse: async (context) => {
@@ -110,8 +133,8 @@ export const architect = (folderPath: string): Agent => {
                             type: 'list',
                             name: 'action',
                             message: 'What would you like to expand?',
-                            choices: plan.key_steps.map((step) => ({ name: step.description, value: step.description })),
-                            default: plan.key_steps[0],
+                            choices: plan.steps.map((step) => ({ name: step.description, value: step.description })),
+                            default: plan.steps[0],
                         },
                     ]);
                     context.data = {

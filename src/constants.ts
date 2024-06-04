@@ -1,8 +1,9 @@
 export const SETTINGS_FOLDER = '.llm';
 export const POST_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'prompt.llm';
-export const OUTPUT_FILE = SETTINGS_FOLDER + '/' + 'content.llm';
-export const LLM_RESPONSE_FILE = SETTINGS_FOLDER + '/' + 'llm-response.llm';
-export const DIFF_PATCH_FILE = SETTINGS_FOLDER + '/' + 'diff.patch';
+export const LAST_PROMPT_FILE = SETTINGS_FOLDER + '/' + 'last-prompt.llm';
+export const LAST_RESPONSE_FILE = SETTINGS_FOLDER + '/' + 'last-response.llm';
+export const CHAT_SO_FAR_FILE = SETTINGS_FOLDER + '/' + 'chat-so-far.llm';
+export const LAST_PATCH_FILE = SETTINGS_FOLDER + '/' + 'last-patch.patch';
 export const POST_PROMPTS_FILE = SETTINGS_FOLDER + '/' + 'custom-prompts.llm';
 export const COMPLETE_DIFF_REQUEST = `The diff you provided is correct but it is not complete. Please provide the rest of the changes. Are you sure you have covered all the required files? Functions? etc.`;
 export const IMAGE_FOLDER = SETTINGS_FOLDER + '/images';

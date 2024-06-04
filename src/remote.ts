@@ -6,10 +6,11 @@ import * as openai from "openai";
 
 import {
     BETTERS_DIFF_REQUEST, COMPLETE_DIFF_REQUEST,
-    DIFF_PATCH_FILE,
+    LAST_PATCH_FILE,
     IMAGE_FOLDER,
-    LLM_RESPONSE_FILE,
-    OUTPUT_FILE
+    LAST_RESPONSE_FILE,
+    LAST_PROMPT_FILE,
+    CHAT_SO_FAR_FILE
 } from './constants.js';
 import { getDirectoryContent } from './llm.js';
 import type { Agent, AgentContext } from './types.js';
@@ -178,30 +179,37 @@ export const sendToLLMStream = async (prompt: string,  options?: {
     }
 };
 
-
-export const saveLLMPrompt = async (response: string) => {
-    fs.writeFileSync(OUTPUT_FILE, response);
+export const saveLastPrompt = async (response: string) => {
+    fs.writeFileSync(LAST_PROMPT_FILE, response);
 };
 
-export const saveLLMResponse = async (response: string) => {
-    fs.writeFileSync(LLM_RESPONSE_FILE, response);
+export const saveLastResponse = async (response: string) => {
+    fs.writeFileSync(LAST_RESPONSE_FILE, response);
+};
+
+export const saveChatSoFar = async (response: string) => {
+    fs.writeFileSync(CHAT_SO_FAR_FILE, response);
+};
+
+export const getChatSoFar = async () => {
+    return readFileContent(CHAT_SO_FAR_FILE);
 };
 
 export const saveCodeBlock = async (code: string) => {
-    fs.writeFileSync(DIFF_PATCH_FILE, code);
-    console.log(`Diff written to ${DIFF_PATCH_FILE} file!`);
+    fs.writeFileSync(LAST_PATCH_FILE, code);
+    console.log(`Diff written to ${LAST_PATCH_FILE} file!`);
 };
 
-export const readLastCodeBlock = () => {
-    return readFileContent(DIFF_PATCH_FILE).toString();
+export const readLastPatch = () => {
+    return readFileContent(LAST_PATCH_FILE).toString();
 };
 
-export const openPatchFile = async () => {
-    openFile(DIFF_PATCH_FILE);
+export const openLastPatchFile = async () => {
+    openFile(LAST_PATCH_FILE);
 };
 
-export const readLastLLMResponse = async () => {
-    return readFileContent(LLM_RESPONSE_FILE);
+export const getLastResponse = async () => {
+    return readFileContent(LAST_RESPONSE_FILE);
 };
 
 export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse: string) => {
@@ -220,9 +228,9 @@ export const requestCompleteDiff = async (lastLLMPrompt: string, lastLLMResponse
     \n\n\n\n\n
     ${postPrompt}
     `;
-    saveLLMPrompt(newPrompt);
+    saveLastPrompt(newPrompt);
     const response = await sendToLLMStream(newPrompt);
-    saveLLMResponse(response);
+    saveLastResponse(response);
     applyCodeDiff(newPrompt, response);
 };
 
@@ -242,9 +250,9 @@ export const requestBetterDiff = async (lastLLMPrompt: string, lastLLMResponse: 
     \n\n\n\n\n
     ${postPrompt}
     `;
-    saveLLMPrompt(newPrompt);
+    saveLastPrompt(newPrompt);
     const response = await sendToLLMStream(newPrompt);
-    saveLLMResponse(response);
+    saveLastResponse(response);
     applyCodeDiff(newPrompt, response);
 };
 
@@ -253,7 +261,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
         let diff = parseCode(llmResponse, 'diff');
         saveCodeBlock(diff);
 
-        openPatchFile();
+        openLastPatchFile();
 
         console.log('Appllying diff...');
         applyDiff(parseDiff(diff));
@@ -339,7 +347,7 @@ export const runAgent = async (promptConfig: Agent, _context?: AgentContext) => 
     context.lastPrompt = builtPrompt.prompt;
     console.info(`Prompt: ${context.lastPrompt}`);
     // console.info(`Final prompt: ${finalPrompt}`);
-    saveLLMPrompt(context.lastPrompt);
+    saveLastPrompt(context.lastPrompt);
 
     // Update chat so far
     if (!context.chatSoFar) {
@@ -349,17 +357,24 @@ export const runAgent = async (promptConfig: Agent, _context?: AgentContext) => 
     }
     context.chatSoFar += `User:\n`;
     context.chatSoFar += context.lastPrompt;
+    saveChatSoFar(context.chatSoFar);
 
     // Handle response
-    context.lastResponse = await sendToLLMStream(context.chatSoFar, {
+    const lastResponse = await sendToLLMStream(context.chatSoFar, {
         responseType: builtPrompt.responseType,
     });
-    saveLLMResponse(context.lastResponse);
+    try {
+        context.lastResponse = JSON.stringify(JSON.parse(lastResponse), null, 2);
+    } catch(_) {
+        context.lastResponse = lastResponse;    
+    }
+    saveLastResponse(context.lastResponse);
 
     // Update chat so far
     context.chatSoFar += `\n\n\n`;
     context.chatSoFar += `Model:\n`;
     context.chatSoFar += context.lastResponse;
+    saveChatSoFar(context.chatSoFar);
 
     // console.info(`LLM response: ${context.response}`);
     await promptConfig.handleResponse({

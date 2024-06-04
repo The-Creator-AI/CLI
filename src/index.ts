@@ -1,7 +1,7 @@
 import inquirer from 'inquirer';
-import { DIFF_PATCH_FILE, OUTPUT_FILE } from './constants.js';
+import { LAST_PATCH_FILE, LAST_PROMPT_FILE } from './constants.js';
 import {
-  readLastCodeBlock,
+  readLastPatch,
   runAgent,
 } from './remote.js';
 import { agents } from './agents/index.js';
@@ -45,15 +45,15 @@ const main = async () => {
   });
 
   if (action === 'apply-last-diff') {
-    console.log(`Reading diff from ${DIFF_PATCH_FILE}`);
-    const diff = readLastCodeBlock();
+    console.log(`Reading diff from ${LAST_PATCH_FILE}`);
+    const diff = readLastPatch();
     console.log('Applying diff...');
     await applyDiff(parseDiff(diff));
     console.log('Diff applied!');
   } if (action === 'get-code-content') {
     const codeContent = getDirectoryContent(folderPath)
-    fs.writeFileSync(OUTPUT_FILE, codeContent);
-    openFile(OUTPUT_FILE);
+    fs.writeFileSync(LAST_PROMPT_FILE, codeContent);
+    openFile(LAST_PROMPT_FILE);
   } else {
     console.log(`Running prompt for ${action}`);
     await runAgent(agents[action](folderPath));
