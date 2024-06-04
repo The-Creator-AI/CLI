@@ -89,7 +89,7 @@ const runAndFix = (folderPath: string): Agent => {
                 default: 'send',
             }]);
             if (action === 'run-again') {
-                context.runPrompt(runAndFix(context.rootDir), context);
+                context.runAgent(runAndFix(context.rootDir), context);
             }
         }
     };
@@ -211,7 +211,7 @@ const suggestThings = (folderPath: string): Agent => {
                     default: 'send',
                 }
             ]);
-            context.runPrompt({
+            context.runAgent({
                 name: 'Code Diff',
                 rootDir: folderPath,
                 // responseType: 'text/plain',

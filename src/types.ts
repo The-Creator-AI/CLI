@@ -8,7 +8,7 @@ export interface AgentContext {
     copyToClipboard: (content: any) => void;
     log: (message: any) => void;
     applyCodeDiff: (context: AgentContext) => Promise<void>;
-    runPrompt: (config: Agent, _context?: AgentContext) => Promise<void>;
+    runAgent: (config: Agent, _context?: AgentContext) => Promise<void>;
     prompt: string;
     response: string;
     data?: any;

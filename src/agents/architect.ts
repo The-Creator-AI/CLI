@@ -1,6 +1,7 @@
 // import editor from '@inquirer/editor';
 import autocomplete from 'inquirer-autocomplete-standalone';
-import {
+// import { developer } from './developer.js';
+import{
     BOT,
     POST_PROMPTS_FILE
 } from '../constants.js';
@@ -11,6 +12,7 @@ import {
 } from '../utils.js';
 
 import { parseCode } from '../utils/code-parsing.js';
+import { runAgent } from '../remote.js';
 
 interface PlanStep {
     step_type: "design" | "implementation" | "documentation";
@@ -63,8 +65,51 @@ export const architect = (folderPath: string): Agent => {
             return { responseType, prompt, };
         },
         handleResponse: async (context) => {
-            const plan: ProjectPlan = JSON.parse(parseCode(context.response, 'json'));
+            let plan: ProjectPlan = JSON.parse(parseCode(context.response, 'json'));
             console.log(plan);
+            // let stepId: string | null = null;
+            while(true) {
+                const answers = await context.ask([
+                    {
+                        type: 'list',
+                        name: 'action',
+                        message: 'What would you like to do?',
+                        choices: [
+                            {
+                                name: 'Expand a step',
+                                value: 'expand-step',
+                            },
+                            {
+                                name: 'Request code for a step',
+                                value: 'request-code',
+                            },
+                            {
+                                name: 'Nothing, I am done',
+                                value: 'done',
+                            },
+                        ],
+                        default: 'expand-step',
+                    },
+                ]);
+
+                if (answers.action === 'expand-step') {
+                    await runAgent(architect(context.rootDir), context);
+                } else if (answers.action === 'request-code') {
+                    // const { stepIdToRequest } = await context.ask([{
+                    //     type: 'input',
+                    //     name: 'stepIdToRequest',
+                    //     message: 'Enter the step id to request code for: ',
+                    // }]);
+                    // stepId = stepIdToRequest;
+                    // await context.runAgent(developer(context.rootDir), { plan, stepId });
+                } else {
+                    break;
+                }
+
+                // if (stepId !== null) {
+                //     await context.runPrompt(developer(context.rootDir), { plan, stepId });
+                // }
+            }
         }
     };
 };

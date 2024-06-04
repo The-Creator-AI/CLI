@@ -2,7 +2,7 @@ import inquirer from 'inquirer';
 import { DIFF_PATCH_FILE, OUTPUT_FILE } from './constants.js';
 import {
   readLastCodeBlock,
-  runPrompt,
+  runAgent,
 } from './remote.js';
 import { agents } from './agents.js';
 import { getDirectoryContent } from './llm.js';
@@ -56,7 +56,7 @@ const main = async () => {
     openFile(OUTPUT_FILE);
   } else {
     console.log(`Running prompt for ${action}`);
-    await runPrompt(agents[action](folderPath));
+    await runAgent(agents[action](folderPath));
   }
 
   return 'Done';

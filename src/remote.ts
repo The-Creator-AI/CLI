@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory, Part } from '@google/generative-ai';
 import * as fs from 'fs';
 import inquirer from 'inquirer';
 // import fetch from 'node-fetch';
@@ -74,7 +74,14 @@ export const sendToLLM = async (prompt: string, options?: {
             }],
             generationConfig: {
                 responseMimeType: responseType
-            }
+            },
+            safetySettings: [{
+                category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                threshold: HarmBlockThreshold.BLOCK_NONE,
+            }, {
+                category: HarmCategory.HARM_CATEGORY_UNSPECIFIED,
+                threshold: HarmBlockThreshold.BLOCK_NONE
+            }]
         });
 
         return response.response.text();
@@ -307,7 +314,7 @@ const applyCodeDiff = async (llmPrompt: string, llmResponse: string) => {
 
 // this function will take a prompt config object
 // and will implement the prompt and handle response
-export const runPrompt = async (promptConfig: Agent, _context?: AgentContext) => {
+export const runAgent = async (promptConfig: Agent, _context?: AgentContext) => {
     const rootDir = promptConfig.rootDir;
 
     console.info(`Working with folder: ${rootDir}`);
@@ -326,7 +333,7 @@ export const runPrompt = async (promptConfig: Agent, _context?: AgentContext) =>
         applyCodeDiff: async (context) => {
             applyCodeDiff(context.prompt, context.response);
         },
-        runPrompt,
+        runAgent,
         prompt: '',
         response: '',
         ..._context,
