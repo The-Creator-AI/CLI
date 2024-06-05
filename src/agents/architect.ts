@@ -1,19 +1,24 @@
 // import editor from '@inquirer/editor';
 import autocomplete from 'inquirer-autocomplete-standalone';
 // import { developer } from './developer.js';
+import inquirer from 'inquirer';
+import { KeyDescriptor } from 'inquirer-press-to-continue';
 import {
     BOT,
-    POST_PROMPTS_FILE
+    POST_PROMPTS_FILE,
+    POST_PROMPT_FILE
 } from '../constants.js';
 import type { Agent, LLMResponseType } from '../types.js';
 import {
     getPreviousRecords,
+    openFile,
+    readFileContent,
     saveNewRecord
 } from '../utils.js';
 
-import { parseCode } from '../utils/code-parsing.js';
-import { getChatSoFar, runAgent } from '../remote.js';
 import { getDirectoryContent } from '../llm.js';
+import { getChatSoFar, runAgent } from '../remote.js';
+import { parseCode } from '../utils/code-parsing.js';
 
 interface Step {
     step_type: "decision" | "implementation" | "documentation";
@@ -89,14 +94,23 @@ export const architect = (folderPath: string): Agent => {
                 } else {
                     prompt += await getChatSoFar();
                     prompt += `\n\n\n`;
-                    const { nextInPlan } = await context.ask([{
-                        type: 'input',
-                        name: 'nextInPlan',
-                        message: 'What would you like to do next?'
-                    }]);
+                    // const { nextInPlan } = await context.ask([{
+                    //     type: 'input',
+                    //     name: 'nextInPlan',
+                    //     message: 'What would you like to do next?'
+                    // }]);
+                    console.log('Please put in your prompt in the following file: ', POST_PROMPT_FILE);
+                    openFile(POST_PROMPT_FILE);
+                    const { key: _ } = await inquirer.prompt<{ key: KeyDescriptor }>({
+                        name: 'key',
+                        type: 'press-to-continue',
+                        anyKey: true,
+                        pressToContinueMessage: 'Press a key to continue...',
+                    });
+
                     prompt += `I call upon the ${BOT.architect} to handle what user asks below (remember to maintain the same JSON structure in your response) -`
                     prompt += `\n\n\n`;
-                    prompt += nextInPlan.trim();
+                    prompt += readFileContent(POST_PROMPT_FILE).trim();
                     return { responseType, prompt, };
                 }
             }
