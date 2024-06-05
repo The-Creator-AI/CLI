@@ -52,6 +52,11 @@ const main = async () => {
     console.log('Diff applied!');
   } if (action === 'get-code-content') {
     const codeContent = getDirectoryContent(folderPath)
+    // if file doesn't exist (the directory structure until it) then create it
+    if (!fs.existsSync(LAST_PROMPT_FILE)) {
+      fs.mkdirSync(LAST_PROMPT_FILE.split('/').slice(0, -1).join('/'), { recursive: true });
+      console.log(`Creating file ${LAST_PROMPT_FILE}`);
+    }
     fs.writeFileSync(LAST_PROMPT_FILE, codeContent);
     openFile(LAST_PROMPT_FILE);
   } else {
