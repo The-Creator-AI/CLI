@@ -124,15 +124,18 @@ export const sendToLLMStream = async (prompt: string,  options?: {
                 const gemini = genAI.getGenerativeModel({ model });
 
                 const imageParts: Part[] = [];
-                const images = await getDirectoryContent(IMAGE_FOLDER);
-                for (const image of images) {
-                    const imagePart = {
-                        image: {
-                            fileData: fs.readFileSync(image),
-                            mimeType: 'image/png'
+                try {
+                    const images = await getDirectoryContent(IMAGE_FOLDER);
+                    for (const image of images) {
+                        const imagePart = {
+                            image: {
+                                fileData: fs.readFileSync(image),
+                                mimeType: 'image/png'
+                            }
                         }
+                        imageParts.push(imagePart as any);
                     }
-                    imageParts.push(imagePart as any);
+                } catch (_) {
                 }
                 const response = await gemini.generateContentStream({
                     contents: [{
