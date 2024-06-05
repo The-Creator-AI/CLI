@@ -10,7 +10,7 @@ npm install
 npm run build
 
 # Now let's create the symbolic link
-SCRIPT_PATH=$(dirname $0)/llm.sh
+SCRIPT_PATH="$(dirname $0)/llm.sh"
 ABSOLUTE_PATH=$(realpath $SCRIPT_PATH)
 SCRIPT_NAME='llm'
 
@@ -21,8 +21,11 @@ else
     LINK_PATH=/usr/local/bin/$SCRIPT_NAME
 fi
 
+# Remove the existing link (if any)
+rm -f $LINK_PATH
+
 # Create the symbolic link
-ln -s $ABSOLUTE_PATH $LINK_PATH
+ln -s "$ABSOLUTE_PATH" $LINK_PATH
 
 # Log the success message
 echo "Symbolic link created successfully at $LINK_PATH"
