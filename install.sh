@@ -10,9 +10,9 @@ npm install
 npm run build
 
 # Now let's create the symbolic link
-SCRIPT_PATH="$(dirname $0)/llm.sh"
+SCRIPT_PATH="$(dirname $0)/creator.sh"
 ABSOLUTE_PATH=$(realpath $SCRIPT_PATH)
-SCRIPT_NAME='llm'
+SCRIPT_NAME='creator'
 
 # Determine the correct path for the symbolic link based on the operating system
 if [[ "$OSTYPE" == "msys" ]]; then
@@ -29,4 +29,4 @@ ln -s "$ABSOLUTE_PATH" $LINK_PATH
 
 # Log the success message
 echo "Symbolic link created successfully at $LINK_PATH"
-ls -l /usr/local/bin/llm
+ls -l /usr/local/bin/creator
