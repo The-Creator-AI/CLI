@@ -12,7 +12,7 @@ npm run build
 # Now let's create the symbolic link
 SCRIPT_PATH="$(dirname $0)/creator.sh"
 ABSOLUTE_PATH=$(realpath $SCRIPT_PATH)
-SCRIPT_NAME='creator'
+SCRIPT_NAME='creator-cli'
 
 # Determine the correct path for the symbolic link based on the operating system
 if [[ "$OSTYPE" == "msys" ]]; then
