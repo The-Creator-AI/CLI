@@ -29,4 +29,4 @@ ln -s "$ABSOLUTE_PATH" $LINK_PATH
 
 # Log the success message
 echo "Symbolic link created successfully at $LINK_PATH"
-ls -l /usr/local/bin/creator
+ls -l /usr/local/bin/creator-cli
