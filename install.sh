@@ -22,6 +22,7 @@ else
 fi
 
 # Remove the existing link (if any)
+echo "Removing existing symbolic link at $LINK_PATH"
 rm -f $LINK_PATH
 
 # Create the symbolic link
@@ -30,3 +31,6 @@ ln -s "$ABSOLUTE_PATH" $LINK_PATH
 # Log the success message
 echo "Symbolic link created successfully at $LINK_PATH"
 ls -l /usr/local/bin/creator-cli
+
+echo "Creator CLI installation completed."
+echo "Run 'creator-cli' to start the app."
